@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FarmVision</string>
+    <string name="app_full_name">FarmVision AgriRover</string>
+    <string name="tagline">Intelligent Agricultural Robotics &amp; Field Vision Platform</string>
+    <string name="foundation_stage">Phase 1 of 15</string>
+    <string name="foundation_status">Android Foundation &amp; Architecture Ready</string>
+</resources>

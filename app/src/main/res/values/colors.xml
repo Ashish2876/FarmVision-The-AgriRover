@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Core AgriRover Brand Colors -->
+    <color name="deep_forest">#123B2A</color>
+    <color name="primary_green">#218C5B</color>
+    <color name="fresh_leaf">#62C985</color>
+    <color name="mint_accent">#A8E6C1</color>
+    <color name="warm_off_white">#F5F8F3</color>
+    <color name="dark_background">#0B1410</color>
+    <color name="dark_surface">#14221B</color>
+    <color name="dark_surface_variant">#1C2E25</color>
+    <color name="primary_text">#17231C</color>
+    <color name="dark_theme_text">#E8F1EB</color>
+    <color name="text_muted_dark">#9EB4A7</color>
+    <color name="border_subtle_dark">#243B30</color>
+
+    <!-- Semantic Status Colors -->
+    <color name="status_online">#2ECC71</color>
+    <color name="status_warning">#F39C12</color>
+    <color name="status_alert">#E74C3C</color>
+    <color name="status_info">#3498DB</color>
+</resources>

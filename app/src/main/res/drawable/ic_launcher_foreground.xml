@@ -1,0 +1,57 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        android:translateX="13.5"
+        android:translateY="13.5">
+        <!-- Sensor Radar Arcs -->
+        <path
+            android:pathData="M38,32 C48,24 60,24 70,32"
+            android:strokeColor="#A8E6C1"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M30,24 C44,14 64,14 78,24"
+            android:strokeColor="#62C985"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round" />
+
+        <!-- Central Smart Leaf & Optical Core -->
+        <path
+            android:fillColor="#218C5B"
+            android:pathData="M54,34 C44,48 40,62 54,76 C68,62 64,48 54,34 Z" />
+        <path
+            android:pathData="M54,38 L54,72"
+            android:strokeColor="#A8E6C1"
+            android:strokeWidth="2"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M54,50 L48,46 M54,56 L60,52 M54,62 L48,58"
+            android:strokeColor="#A8E6C1"
+            android:strokeWidth="1.6"
+            android:strokeLineCap="round" />
+
+        <!-- Rover Treads / Wheels -->
+        <path
+            android:fillColor="#14221B"
+            android:strokeColor="#62C985"
+            android:strokeWidth="2"
+            android:pathData="M24,44 L32,44 A4,4 0 0,1 36,48 L36,78 A4,4 0 0,1 32,82 L24,82 A4,4 0 0,1 20,78 L20,48 A4,4 0 0,1 24,44 Z" />
+        <path
+            android:fillColor="#14221B"
+            android:strokeColor="#62C985"
+            android:strokeWidth="2"
+            android:pathData="M76,44 L84,44 A4,4 0 0,1 88,48 L88,78 A4,4 0 0,1 84,82 L76,82 A4,4 0 0,1 72,78 L72,48 A4,4 0 0,1 76,44 Z" />
+
+        <!-- Rover Axle / Chassis Crossbeam -->
+        <path
+            android:strokeColor="#62C985"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M36,64 L44,64 M64,64 L72,64" />
+    </group>
+</vector>
