@@ -61,15 +61,21 @@ The FarmVision AgriRover platform is executed in five discrete, sequential stage
 ---
 
 ### Phase 3: App Shell and Navigation
-- **Status:** PLANNED (Awaiting Phase 2 Approval)
-- **Objective:** Implement the application shell, top app bars, adaptive navigation rail (tablets) / navigation bar (phones), and type-safe routing.
-- **Expected Deliverables:**
-  - Navigation Compose integration using Kotlin Serialization type-safe routes.
-  - Adaptive layout structure responding to window size classes (Compact, Medium, Expanded).
-  - Top app bar displaying rover connection status pill, active field name, and quick-access emergency stop.
+- **Status:** **IN PROGRESS (Phase 3 App Shell, Navigation & Screen Integration)**
+- **Objective:** Implement the application shell, Material 3 bottom navigation bar, deterministic back policy, and cross-screen state integration.
+- **Implemented Deliverables:**
+  - `FarmVisionApp`: Production-grade Material 3 app shell hosting the 5 primary destinations (`Home`, `Rover`, `My Farm`, `Analytics`, `Settings`).
+  - Canonical destination definitions with routes and stable test tags (`nav_home`, `nav_rover`, `nav_my_farm`, `nav_analytics`, `nav_settings`).
+  - Deterministic Back-Navigation Policy via `BackHandler`:
+    1. Dismiss active modal sheet first.
+    2. Non-Home tab returns to Home.
+    3. Home with nothing open exits app.
+  - Android 13+ predictive back compatibility (`enableOnBackInvokedCallback="true"`).
+  - Combined Drive & Monitor HUD on Rover screen integrating motor speed gauge, battery, E-Stop safety core, directional D-Pad, 4 live sensor readings (moisture, temperature, humidity, light), and freshness timestamp.
+  - State retention across tab switches and configuration changes via `rememberSaveable` and top-level shared `FarmViewModel`.
 - **Dependencies:** Phase 2 (Design system components).
-- **Acceptance Criteria:** Back-stack transitions work smoothly without memory leaks; deep-linking route structure established.
-- **Evidence:** Navigation unit tests, Compose UI test navigating between stub destinations.
+- **Acceptance Criteria:** Five destinations reachable with correct selected semantics; back transitions work deterministically; cross-screen actions (Home -> Rover, Home -> My Farm) stay synchronized; unit and instrumented tests compile and pass.
+- **Evidence:** 36 automated unit tests passing (`AppShellUnitTest`, `FarmViewModelTest`), Compose instrumented tests compiling cleanly in `FarmVisionAppTest.kt`.
 
 ---
 

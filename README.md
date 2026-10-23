@@ -1,58 +1,52 @@
 # FarmVision AgriRover
 
-[![Phase 1: Android Foundation](https://img.shields.io/badge/Phase%201-Android%20Foundation%20%26%20Architecture-218C5B?style=for-the-badge)](docs/roadmap.md)
 [![Platform](https://img.shields.io/badge/Platform-Android%20(Kotlin%20%2F%20Compose)-123B2A?style=for-the-badge&logo=android)](app/)
 [![Java](https://img.shields.io/badge/Java%20Toolchain-17-62C985?style=for-the-badge&logo=openjdk)](gradle/libs.versions.toml)
+[![Material 3](https://img.shields.io/badge/Design%20System-Material%203-218C5B?style=for-the-badge)](docs/design-system.md)
 [![Repository](https://img.shields.io/badge/GitHub-Ashish2876%2FFarmVision--The--AgriRover-0B1410?style=for-the-badge&logo=github)](https://github.com/Ashish2876/FarmVision-The-AgriRover)
 
 > **FarmVision AgriRover** is an intelligent smart-agriculture robotics platform combining advanced field vision, autonomous rover telemetry, sensor acquisition, and precision crop analytics.
 
 ---
 
-## 1. Project Overview & Long-Term Vision
+## 1. Application Overview
 
-FarmVision AgriRover bridges cutting-edge embedded robotics and modern mobile computing to empower farmers, agronomists, and agricultural researchers with real-time field intelligence. 
+FarmVision AgriRover launches directly into a polished, production-style mobile operator command center built with **Kotlin**, **Jetpack Compose**, and **Material 3**.
 
-The complete long-term system architecture encompasses:
-1. **Android Application**: Comprehensive operator command center featuring mission control dashboards, manual and autonomous rover piloting, live sensor monitoring, plant health diagnostics, AI agricultural assistant, and field analytics.
-2. **Physical Agricultural Rover (Stage B)**: Robust, all-terrain agricultural rover chassis equipped with high-torque DC geared motors, motor drivers (H-Bridge/PWM), dedicated rechargeable power management, and agricultural sensor payloads.
-3. **ESP32 Firmware (Stage C)**: High-reliability real-time embedded firmware running on the ESP32 microcontroller, executing sensor data acquisition, precision motor actuation, safety watchdogs, and failsafe motor cutoffs.
-4. **Communication & Telemetry (Stage D)**: Resilient communication layer linking Android and the rover hardware with real-time command acknowledgements, heartbeats, and automated emergency stops upon connection loss.
-5. **Backend & Cloud Telemetry**: Scalable telemetry ingestion, spatial farm mapping, historical crop data persistence, and synchronization.
-6. **Edge & On-Device AI/ML**: Deep-learning models for localized plant-leaf disease classification, weed identification, and yield forecasting.
-7. **System Validation & Field Testing (Stage E)**: Rigorous end-to-end hardware-in-the-loop (HIL) validation, field trials across varying terrain, outdoor sunlight UX verification, and fault recovery.
+The application features a 5-destination bottom navigation shell:
 
----
+1. **Home Dashboard**:
+   - Live rover battery, voltage, and connection state.
+   - Real-time agricultural sensor cards: Rootzone Soil Moisture (`%`), Ambient Temperature (`°C`), Air Humidity (`%`), and Solar Radiation (`lx`).
+   - Monospace tabular figures (`tnum`) to eliminate layout jitter during telemetry polling.
+   - Crop health summary across monitored plots.
+   - Recent environmental threshold alerts and quick actions.
+2. **Rover Control Center**:
+   - Directional piloting pad (Forward, Reverse, Turn Left, Turn Right, Hold Position/Stop).
+   - Dynamic ground speed and motor temperature readout.
+   - Drive mode selector (Manual Piloting, Autonomous Waypoint Scan, Return to Dock).
+   - Dedicated **Emergency Stop (E-Stop)** safety core with immediate power cutoff and motor re-arming.
+3. **My Farm**:
+   - Crop catalog with variety details, plot locations, and growth stages.
+   - Rootzone moisture monitoring and watering recommendations.
+   - Interactive irrigation logging and category filtering (All, Healthy, Needs Attention).
+4. **Field Analytics**:
+   - Custom Canvas time-series line charts for historical soil moisture and ambient temperature trends.
+   - Time-range selector (24 Hours, 7 Days, 30 Days).
+   - Aggregated agronomic KPIs (average daily moisture, thermal swings, irrigation volume).
+5. **Settings & Preferences**:
+   - Rover connection protocol configuration (Wi-Fi SoftAP, Bluetooth Low Energy, MQTT Broker).
+   - Simulation / Mock Engine toggle.
+   - Measurement unit customization (Celsius/Fahrenheit, Metric/Imperial).
+   - Platform architecture and safety watchdog specifications.
 
-## 2. Staged Development Order & Strategy
-
-To guarantee architectural stability and maintainable delivery, FarmVision AgriRover follows a structured five-stage lifecycle:
-
-```mermaid
-flowchart LR
-    A["Stage A: Android Application\n(Phases 1 - 15)"] --> B["Stage B: Physical Rover\n(Chassis, Motors, Power)"]
-    B --> C["Stage C: ESP32 Firmware\n(Sensing, Motor Control, Safety)"]
-    C --> D["Stage D: Integration\n(Hardware-in-the-Loop & Failsafes)"]
-    D --> E["Stage E: Final Validation\n(Field Testing & Delivery)"]
-```
-
-### Current Scope: Phase 1 of 15 (Android Foundation & Architecture)
-In accordance with the project master plan, current implementation is strictly focused on **Phase 1**:
-- Inspecting workspace and Android toolchains.
-- Establishing modern Android technical foundation with Gradle Kotlin DSL, Version Catalog (`gradle/libs.versions.toml`), and Java 17.
-- Implementing the centralized, nature-inspired futuristic design system and token engine.
-- Building the branded, minimal application entry screen.
-- Documenting system architecture, design tokens, and the complete 15-phase roadmap.
-- Executing baseline build and automated test verification.
-- Safe preparation for publication to the official GitHub repository (`Ashish2876/FarmVision-The-AgriRover`).
-
-> **Boundary Notice**: Features such as full navigation shells, rover controllers, real-time telemetry charts, live hardware sockets, and physical firmware belong to subsequent phases and stages. Phase 1 provides the clean, buildable baseline without fabricating fake hardware telemetry.
+> **Simulation / Hardware Boundary Notice**: All sensor telemetry, rover actuation vectors, and historical trends are generated locally via `MockFarmRepository` and explicitly labelled with **DEMO DATA** badges. Physical rover motors, ESP32 firmware actuation, and live field communication will be integrated during subsequent hardware milestones.
 
 ---
 
-## 3. Technology Stack & Dependencies
+## 2. Technology Stack & Dependencies
 
-| Layer | Technology | Version / Specification |
+| Layer | Technology | Specification |
 | :--- | :--- | :--- |
 | **Language** | Kotlin | `2.0.21` |
 | **UI Framework** | Jetpack Compose & Material 3 | Compose BOM `2024.10.01` |
@@ -61,103 +55,101 @@ In accordance with the project master plan, current implementation is strictly f
 | **JDK Toolchain** | OpenJDK / Microsoft JDK | Java 17 (`17.0.18+8`) |
 | **Android SDKs** | Compile SDK / Target SDK / Min SDK | Compile `35` • Target `35` • Min `26` (Android 8.0+) |
 | **Architecture** | Unidirectional Data Flow (UDF) & Clean Architecture | Layered Presentation, Domain, and Data |
-| **Testing** | JUnit 4, AndroidX Test, Compose UI Test | JUnit `4.13.2` • Espresso `3.6.1` |
+| **Testing** | JUnit 4, AndroidX Test, Compose UI Test | JUnit `4.13.2` • 23 Passing Unit Tests |
 
 ---
 
-## 4. Visual Identity & Design Principles
+## 3. Visual Identity & Design Principles
 
-FarmVision AgriRover introduces a distinctive design language tailored for agricultural technology:
-- **Futuristic Yet Pragmatic**: Industrial aesthetics with clear telemetry visualizers without distracting fluorescent neon clutter.
+FarmVision AgriRover introduces a nature-inspired agricultural tech design language:
 - **Nature-Inspired Palette**:
   - `Deep Forest (#123B2A)`: Grounded primary containers and structural anchors.
   - `Primary Green (#218C5B)`: High-priority operational triggers and brand highlights.
-  - `Fresh Leaf (#62C985)`: Key typography, active telemetry indicators, and icons.
+  - `Light Primary Green (#176840)`: High-contrast button containers achieving 6.34:1 WCAG AA contrast.
+  - `Fresh Leaf (#62C985)`: Active telemetry indicators and prominent headings.
   - `Mint Accent (#A8E6C1)`: Tactical highlights, chip borders, and glowing badges.
-  - `Dark Background (#0B1410)`: High-efficiency, low-power dark canvas optimized for outdoor sunlight contrast.
-  - `Dark Surface (#14221B)` & `Variant (#1C2E25)`: Layered modular cards.
-- **High-Contrast Readability**: Optimized for outdoor readability in varying direct sunlight conditions with accessible font sizes and touch targets $\ge 48\text{dp}$.
-
-Detailed token definitions, typographic scales, and shape metrics are documented in [docs/design-system.md](docs/design-system.md).
+  - `Warm Off-White (#F5F8F3)`: Clean, readable light background.
+  - `Dark Background (#0B1410)` & `Dark Surface (#14221B)`: High-contrast outdoor canvases.
+- **Accessibility & Outdoor Ergonomics**:
+  - Minimum touch target standard: $\ge 48\text{dp}$ on all interactive triggers.
+  - Semantic status indicators always combine geometric icons with explicit text (never color dot alone).
+  - Tabular numeric figures (`fontFeatureSettings = "tnum"`) prevent character shifting during continuous data streams.
 
 ---
 
-## 5. Repository Structure
+## 4. Repository Structure
 
 ```text
 FarmVision/
-├── .gitignore                      # Android Studio, Gradle, and OS ignore rules
-├── build.gradle.kts                # Top-level root build configuration
-├── settings.gradle.kts             # Plugin repositories and module includes
-├── gradle.properties               # JVM memory, caching, and AndroidX options
-├── gradlew / gradlew.bat           # Gradle wrapper scripts (v8.11)
+├── .gitignore
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties
+├── gradlew / gradlew.bat
 ├── gradle/
-│   ├── libs.versions.toml          # Centralized version catalog
+│   ├── libs.versions.toml
 │   └── wrapper/
-│       ├── gradle-wrapper.jar
-│       └── gradle-wrapper.properties
 ├── app/
-│   ├── build.gradle.kts            # App module configuration & dependencies
-│   ├── proguard-rules.pro          # ProGuard optimization rules
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
 │   └── src/
 │       ├── main/
-│       │   ├── AndroidManifest.xml # App manifest & launcher activity declaration
+│       │   ├── AndroidManifest.xml
 │       │   ├── java/com/farmvision/agrirover/
-│       │   │   ├── MainActivity.kt # Edge-to-edge entry point activity
+│       │   │   ├── MainActivity.kt        # Launches FarmVisionApp shell directly
+│       │   │   ├── data/
+│       │   │   │   ├── local/             # SettingsPreferencesManager (SharedPreferences persistence)
+│       │   │   │   ├── model/             # RoverTelemetry, PlantItem, FarmAlert, SensorDataPoint, FarmSettings
+│       │   │   │   └── repository/        # FarmRepository & MockFarmRepository (StateFlow streams)
+│       │   │   ├── core/designsystem/
+│       │   │   │   ├── component/         # Reusable buttons, cards, status, metrics, states
+│       │   │   │   └── theme/             # Spacing, Contrast calculator, Theme extensions
 │       │   │   └── ui/
-│       │   │       ├── entry/      # Minimal branded Phase 1 entry screen
-│       │   │       └── theme/      # Centralized theme tokens (Color, Type, Shape, Theme)
-│       │   └── res/
-│       │       ├── drawable/       # Vector drawables (adaptive icons, logo, badges)
-│       │       ├── mipmap-anydpi-v26/ # Adaptive launcher icons
-│       │       └── values/         # strings.xml, colors.xml, themes.xml
-│       ├── test/                   # JVM unit tests (BaselineUnitTest.kt)
-│       └── androidTest/            # Instrumented Compose tests (EntryScreenTest.kt)
+│       │   │       ├── app/               # FarmVisionApp & FarmVisionDestination (Bottom Nav)
+│       │   │       ├── viewmodel/         # FarmViewModel (Shared StateFlow architecture)
+│       │   │       ├── home/              # HomeScreen (Dashboard, telemetry, and notification sheet)
+│       │   │       ├── rover/             # RoverScreen (Piloting pad, E-Stop cutoff, speed HUD)
+│       │   │       ├── farm/              # MyFarmScreen (Crop catalog & reactive irrigation sync)
+│       │   │       ├── analytics/         # AnalyticsScreen (Dynamic 24h/7d/30d Canvas charts)
+│       │   │       ├── settings/          # SettingsScreen (Persistent units & protocol bridge)
+│       │   │       ├── entry/             # Branded foundation entry screen
+│       │   │       └── theme/             # Color, Type, Shape, Theme
+│       │   └── res/                       # Vectors, launcher mipmaps, values
+│       ├── debug/                         # Debug-only showcase activity and launcher
+│       ├── release/                       # Release stubs (showcase excluded)
+│       ├── test/                          # 36 JVM unit tests (100% pass across 6 suites)
+│       └── androidTest/                   # Instrumented Compose UI tests (Navigation & BottomSheet)
 └── docs/
-    ├── architecture.md             # Complete system architecture & hardware boundaries
-    ├── design-system.md            # Tokens, typography, shapes, and accessibility
-    └── roadmap.md                  # Comprehensive 15-phase roadmap + hardware stages
+    ├── architecture.md
+    ├── design-system.md
+    └── roadmap.md
 ```
 
 ---
 
-## 6. Getting Started & Build Instructions
+## 5. Build & Test Instructions
 
-### Prerequisites
-1. **Java Development Kit (JDK)**: JDK 17 installed with `JAVA_HOME` configured.
-2. **Android SDK**: Android SDK with API Level 35 platform and Build-Tools 35.0.0 installed.
-3. **Android Studio**: Android Studio Ladybug (2024.2.1+) or newer recommended.
-
-### Building via Command Line
-Execute the standard Gradle commands from the repository root:
+Execute standard Gradle commands from the project root:
 
 ```bash
-# Check Gradle and environment configuration
-./gradlew -v
-
-# Run local JVM unit tests
+# Run all local JVM unit tests (36 tests across 6 suites)
 ./gradlew testDebugUnitTest
 
-# Assemble Debug APK
+# Assemble the Debug APK
 ./gradlew assembleDebug
+
+# Install and launch on an attached Android device (via ADB)
+./gradlew installDebug
+adb shell monkey -p com.farmvision.agrirover 1
 ```
-The compiled debug APK will be generated at:
+
+The compiled debug APK is generated at:
 `app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-## 7. Documentation Index
+## 6. Documentation Index
 
-- [docs/architecture.md](docs/architecture.md): Presentation, Domain, Data boundaries, telemetry interfaces, hardware safety, and package structures.
-- [docs/design-system.md](docs/design-system.md): Color tokens, typography hierarchy, shape geometry, and Phase 2 component roadmap.
-- [docs/roadmap.md](docs/roadmap.md): Complete 15-phase Android app milestones and Stages B through E hardware/firmware execution schedule.
-
----
-
-## 8. Development Status & Approvals
-
-- **Current Stage**: Stage A (Android Application)
-- **Current Phase**: **Phase 1 of 15 (Completed & Ready for Baseline Verification)**
-- **GitHub Target**: [Ashish2876/FarmVision-The-AgriRover](https://github.com/Ashish2876/FarmVision-The-AgriRover)
-- **Phase 2 Authorization**: Pending explicit `APPROVED` command.
-- **GitHub Push Authorization**: Pending explicit `AUTHORIZE PUSH` command.
+- [docs/architecture.md](docs/architecture.md): Presentation, Domain, and Data layer separation, hardware safety, and watchdog specifications.
+- [docs/design-system.md](docs/design-system.md): Color tokens, measured WCAG contrast ratios, typography scale, spacing grid, and component API inventory.
+- [docs/roadmap.md](docs/roadmap.md): Complete lifecycle schedule covering Android application phases and physical rover stages (B–E).

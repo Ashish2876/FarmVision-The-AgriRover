@@ -3,6 +3,7 @@ package com.farmvision.agrirover
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import com.farmvision.agrirover.ui.components.ComponentCatalogScreen
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
 import org.junit.Rule
@@ -27,9 +28,9 @@ class ComponentCatalogTest {
         composeTestRule.onNodeWithText("DESIGN SYSTEM CATALOG").assertIsDisplayed()
         composeTestRule.onNodeWithText("1. Telemetry Link Banner").assertIsDisplayed()
         composeTestRule.onNodeWithText("2. Semantic Status Chips").assertIsDisplayed()
-        composeTestRule.onNodeWithText("3. Telemetry Speed & RPM Gauge").assertIsDisplayed()
-        composeTestRule.onNodeWithText("4. Telemetry Metric Cards").assertIsDisplayed()
-        composeTestRule.onNodeWithText("5. Emergency Stop (E-Stop) Safety Core").assertIsDisplayed()
-        composeTestRule.onNodeWithText("6. Tactile Operational Buttons").assertIsDisplayed()
+        composeTestRule.onNodeWithText("3. Telemetry Speed & RPM Gauge").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("4. Telemetry Metric Cards").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("5. Emergency Stop (E-Stop) Safety Core").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("6. Tactile Operational Buttons").performScrollTo().assertIsDisplayed()
     }
 }
