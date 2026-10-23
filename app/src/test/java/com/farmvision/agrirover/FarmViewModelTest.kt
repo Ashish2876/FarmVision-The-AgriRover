@@ -287,4 +287,78 @@ class FarmViewModelTest {
         viewModel.clearAllAlerts()
         assertTrue(viewModel.alerts.value.isEmpty())
     }
+
+    @Test
+    fun phase5_quickActions_startFieldScanSetsAutonomousModeAndMovement() {
+        viewModel.startFieldScan()
+        val telemetry = viewModel.telemetry.value
+        assertEquals("FIELD SCAN", telemetry.activeCommand)
+        assertEquals("AUTONOMOUS", telemetry.roverMode)
+        assertEquals(2.0f, telemetry.speedKmh, 0.01f)
+        assertEquals("Autonomous Field Scan", telemetry.activeMission)
+    }
+
+    @Test
+    fun phase5_quickActions_returnToDockSetsDockingModeAndMovement() {
+        viewModel.returnToDock()
+        val telemetry = viewModel.telemetry.value
+        assertEquals("RETURN TO DOCK", telemetry.activeCommand)
+        assertEquals("DOCKING", telemetry.roverMode)
+        assertEquals(2.2f, telemetry.speedKmh, 0.01f)
+        assertEquals("Returning to Dock", telemetry.activeMission)
+    }
+
+    @Test
+    fun phase5_quickActions_disarmMotorsEngagesEmergencyCutoff() {
+        viewModel.startFieldScan()
+        assertEquals("AUTONOMOUS", viewModel.telemetry.value.roverMode)
+
+        // Disarm motors
+        viewModel.disarmMotors()
+        val eStopped = viewModel.telemetry.value
+        assertTrue(eStopped.isEmergencyCutoff)
+        assertEquals("E-STOPPED", eStopped.roverMode)
+        assertEquals("EMERGENCY CUTOFF", eStopped.activeCommand)
+        assertEquals(0.0f, eStopped.speedKmh, 0.01f)
+        assertTrue(eStopped.activeMission.contains("Halted"))
+
+        // Attempting quick action while disarmed is blocked
+        viewModel.startFieldScan()
+        assertTrue(viewModel.telemetry.value.isEmergencyCutoff)
+        assertEquals(0.0f, viewModel.telemetry.value.speedKmh, 0.01f)
+
+        viewModel.returnToDock()
+        assertTrue(viewModel.telemetry.value.isEmergencyCutoff)
+        assertEquals(0.0f, viewModel.telemetry.value.speedKmh, 0.01f)
+    }
+
+    @Test
+    fun phase5_roverTelemetry_exposesMissionOverviewAndGpsFix() {
+        val telemetry = viewModel.telemetry.value
+        assertEquals("Autonomous Row Scouting", telemetry.activeMission)
+        assertEquals("3D Fix (8 Sats)", telemetry.gpsFixStatus)
+        assertEquals("12.9716°N 74.1672°E", telemetry.simulatedGps)
+        assertEquals("Field A (Demo)", telemetry.fieldName)
+        assertEquals("Rover 01", telemetry.roverIdentifier)
+    }
+
+    @Test
+    fun phase5_telemetryBadgeLabels_speedAndGpsLogicEvaluatesCorrectly() {
+        // Stationary
+        assertEquals("Stationary", viewModel.getSpeedStatusLabel())
+
+        // Cruising when speed > 0
+        viewModel.updateRoverMovement("FORWARD", 3.0f)
+        assertEquals("Cruising", viewModel.getSpeedStatusLabel())
+
+        // Cutoff when E-Stop engaged
+        viewModel.setEmergencyStop(true)
+        assertEquals("Cutoff", viewModel.getSpeedStatusLabel())
+
+        // GPS Locked vs No Fix
+        assertEquals("Locked", viewModel.getGpsStatusLabel("3D Fix (8 Sats)"))
+        assertEquals("Locked", viewModel.getGpsStatusLabel("RTK Fix (12 Sats)"))
+        assertEquals("No Fix", viewModel.getGpsStatusLabel("No Fix (0 Sats)"))
+        assertEquals("No Fix", viewModel.getGpsStatusLabel("Searching..."))
+    }
 }

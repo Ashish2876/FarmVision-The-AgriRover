@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +60,7 @@ fun TelemetryMetricCard(
     unit: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     trend: MetricTrend = MetricTrend.Stable,
     trendLabel: String = "Stable",
     status: AgriStatusType = AgriStatusType.Nominal,
@@ -87,29 +89,37 @@ fun TelemetryMetricCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(6.dp))
                             .background(statusColor.copy(alpha = 0.15f))
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = statusColor,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
-                        color = TextMutedDark
+                        fontSize = 13.sp,
+                        color = TextMutedDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                Spacer(modifier = Modifier.width(4.dp))
 
                 TrendIndicator(trend = trend, label = trendLabel)
             }
@@ -133,6 +143,18 @@ fun TelemetryMetricCard(
                     fontWeight = FontWeight.SemiBold,
                     color = statusColor,
                     modifier = Modifier.padding(bottom = 3.dp)
+                )
+            }
+
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
+                    color = TextMutedDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -169,21 +191,23 @@ private fun TrendIndicator(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 6.dp, vertical = 3.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = color,
-            modifier = Modifier.size(12.dp)
+            modifier = Modifier.size(10.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
-            fontSize = 10.sp,
-            color = color
+            fontSize = 9.sp,
+            color = color,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

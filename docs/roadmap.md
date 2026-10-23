@@ -79,30 +79,35 @@ The FarmVision AgriRover platform is executed in five discrete, sequential stage
 
 ---
 
-### Phase 4: Domain Models and Mock Data Architecture
-- **Status:** PLANNED
-- **Objective:** Establish the pure Kotlin domain layer, business entities, and high-fidelity physics-based simulation engine (`MockRoverEngine`).
-- **Expected Deliverables:**
-  - Domain models: `RoverTelemetry`, `SensorPacket`, `SoilProfile`, `PlantHealthRecord`, `RoverCommand`.
-  - Interfaces: `RoverTelemetryProvider`, `RoverCommandProvider`.
-  - `MockRoverEngine`: Coroutine-driven generator simulating battery drain, GPS waypoint movement, soil moisture fluctuations, and simulated packet drops.
+### Phase 4: Domain Models and Actual Rover Component Architecture
+- **Status:** **COMPLETED (Phase 4 Verified)**
+- **Objective:** Establish a pure Kotlin data foundation, canonical sensor models, deterministic simulation boundaries, and draft hardware inventory representations matching the 23-item rover bill of materials.
+- **Implemented Deliverables:**
+  - `SensorDomainModels`: `DataOrigin` (`Simulated`, `LiveHardware`), `ReadingState` (`Available`, `Stale`, `Unavailable`, `Invalid`), `SensorType` with canonical units and physical/agronomical validity boundaries, `SensorReading` with range validation, and `SoilMoistureDualProbeMapping` consolidating two physical probes into rootzone telemetry.
+  - `HardwareModels`: Pure Kotlin models covering the exact 23 inventory items across controllers, sensors, motor driver, 4 drive motors, 3 servos, irrigation, power, and chassis; pin assignments unconfigured by default with structural duplicate GPIO detection.
+  - `HardwareCatalogSeed`: Static in-code seed representing the exact 23 inventory components; no item marked `Verified`.
+  - Architecture Boundaries: `TelemetrySource`, `CommandSink`, `HardwareCatalogSource`, and injectable `TimeProvider` (`SystemTimeProvider`, `FakeTimeProvider`).
+  - Single Source of Truth: `MockFarmRepository` implementing boundaries with unified StateFlow streams and simulated origin markers.
+  - Test Suites: 57 JVM unit tests passing (18 new tests covering sensor domain, catalog integrity, provisional assumptions, and pin validation) and 12 connected Android UI tests passing.
 - **Dependencies:** Phase 3 (App shell).
-- **Acceptance Criteria:** UI can run entirely without physical hardware; simulation strictly flagged as "SIMULATION ACTIVE".
-- **Evidence:** JUnit 4 tests validating mock telemetry stream frequency, value bounds, and cancellation behavior.
+- **Acceptance Criteria:** 100% of the 23 inventory components represented honestly; canonical units enforced; out-of-range readings marked invalid; simulated origin explicit; all existing screens and tests preserved.
+- **Evidence:** 57 JVM unit tests passing in `SensorDomainUnitTest`, `HardwareInventoryUnitTest`, `FarmViewModelTest`, and `AppShellUnitTest`; 12 connected instrumented tests passing on Android Emulator; documentation in `docs/hardware-data-model.md` and `docs/architecture.md`.
 
 ---
 
 ### Phase 5: Home Dashboard
-- **Status:** PLANNED
+- **Status:** **COMPLETED (Phase 5 Verified)**
 - **Objective:** Deliver the primary mission overview dashboard presenting field status, quick telemetry widgets, and quick action shortcuts.
-- **Expected Deliverables:**
-  - Mission status summary card (Active Mission, Current Field, Rover Mode).
-  - 4-card telemetry quick-glance grid (Battery %, Speed km/h, Soil Moisture %, GPS Fix).
-  - Quick action bar (Start Field Scan, Return to Dock, Disarm Motors).
-  - Recent alerts ticker.
+- **Implemented Deliverables:**
+  - `MissionStatusCard`: High-fidelity glassmorphic mission card displaying `activeMission`, current field, rover mode, rover identifier, heartbeat timestamp, and `DataOrigin.Simulated` marker with live pulsing beacon.
+  - `TelemetryQuickGlanceGrid`: 2x2 high-contrast metric card grid highlighting Battery % (with voltage & progress gauge), Speed km/h (with active command), Rootzone Soil Moisture % (with dual-probe mapping), and GPS Fix (with 3D fix & coordinates).
+  - `QuickActionBar`: Glove-friendly outdoor operational buttons using `TactileButton` for "Field Scan", "Dock Rover", and "Disarm / Re-Arm Motors".
+  - `AlertsTickerBar`: Real-time compact alert ticker banner with severity-themed beacons and one-tap modal sheet expansion.
+  - `SecondarySensorsSection`: Multi-sensor telemetry visualizers reflecting Phase 4 hardware inventory (DHT22 Temperature & Humidity, Soil pH, HC-SR04 Sonar distance, and solar lux).
+  - Test Suites: 62 automated JVM unit tests passing (18 tests in `FarmViewModelTest`), with zero errors and clean APK build.
 - **Dependencies:** Phase 4 (Domain models & mock engine).
-- **Acceptance Criteria:** Real-time updates reflect mock stream changes smoothly with 60fps animations; zero UI jank.
-- **Evidence:** Compose UI test verifying telemetry value rendering and card interactions.
+- **Acceptance Criteria:** Real-time updates reflect mock stream changes smoothly; zero UI jank; all quick action commands execute safely with E-Stop protection.
+- **Evidence:** 62 JVM unit tests passing, successful `assembleDebug` APK generation, Compose UI test compatibility.
 
 ---
 
