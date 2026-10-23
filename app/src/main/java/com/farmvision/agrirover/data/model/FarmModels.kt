@@ -103,7 +103,13 @@ data class RoverTelemetry(
     val cameraTiltAngle: Int = 0,
     val fieldName: String = "Field A (Demo)",
     val roverIdentifier: String = "Rover 01",
-    val simulatedGps: String = "12.9716°N 74.1672°E"
+    val simulatedGps: String = "12.9716°N 74.1672°E",
+    val dataOrigin: DataOrigin = DataOrigin.Simulated,
+    val soilPh: Float = 6.8f,
+    val ultrasonicDistanceCm: Float = 45.0f,
+    val sensorReadings: Map<SensorType, SensorReading> = emptyMap(),
+    val activeMission: String = "Autonomous Row Scouting",
+    val gpsFixStatus: String = "3D Fix (8 Sats)"
 )
 
 /**

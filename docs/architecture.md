@@ -197,3 +197,29 @@ The quality strategy spans four testing tiers:
 2. **Compose UI Tests (`app/src/androidTest/`)**: Verify user interactions, accessibility labels, semantics tree nodes, and theme transitions.
 3. **Screenshot & Regression Testing**: Ensure visual fidelity across multiple screen densities (phone, 7" tablet, 10" outdoor rugged tablet).
 4. **Hardware-in-the-Loop (HIL) Tests (Stage D)**: Automated integration scripts simulating packet drops, corrupted CRC checksums, and delayed ACKs to verify fail-safe recovery.
+
+---
+
+## 9. Phase 4 Domain Architecture & Boundaries
+
+Phase 4 introduces a formal, pure-Kotlin domain layer and modular boundaries:
+
+### 9.1 Boundary Contracts
+- `TelemetrySource`: Exposes `telemetryFlow` and canonical `sensorReadingsFlow`. Implemented in Phase 4 by `MockFarmRepository` (`DataOrigin.Simulated`). Future Phase 11 hardware drivers (BLE, Wi-Fi Direct, MQTT) implement this interface without modifying UI screens.
+- `CommandSink`: Handles piloting vectors, speed envelopes, and emergency stops. Enforces safety watchdogs (E-Stop latching, movement rejection while cutoff, mode changes never initiate movement).
+- `HardwareCatalogSource`: Provides immutable access to the 23-item hardware inventory, controller profiles, and actuator configurations.
+
+### 9.2 Canonical Units & Physical Validity
+All sensor readings are stored in canonical units (°C, %, lx, pH, cm). Out-of-bounds readings are classified as `ReadingState.Invalid` and never displayed as valid numbers:
+- **Soil Moisture**: 0.0% – 100.0% (canonical `%`)
+- **Air Temperature**: -20.0°C – 70.0°C (canonical `°C`)
+- **Relative Humidity**: 0.0% – 100.0% (canonical `%`)
+- **Solar Light Intensity**: 0 – 150,000 lx (canonical `lx`; simulated, no physical sensor)
+- **Soil pH**: 0.0 – 14.0 (canonical `pH`)
+- **Obstacle Distance**: 2.0 – 400.0 cm (canonical `cm`)
+
+### 9.3 Determinism & Injected Clock
+Telemetry timestamps and staleness calculations are governed by an injectable `TimeProvider` interface (`SystemTimeProvider` for app runtime, `FakeTimeProvider` for deterministic unit testing).
+
+### 9.4 Hardware Inventory Specification
+The 23 physical components are documented in detail in [`docs/hardware-data-model.md`](hardware-data-model.md), with all pin numbers unassigned by default and configuration marked as draft.

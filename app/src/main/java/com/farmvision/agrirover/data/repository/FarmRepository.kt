@@ -2,43 +2,49 @@ package com.farmvision.agrirover.data.repository
 
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionTrendDirection
+import com.farmvision.agrirover.data.datasource.CommandSink
+import com.farmvision.agrirover.data.datasource.HardwareCatalogSource
+import com.farmvision.agrirover.data.datasource.StaticHardwareCatalogSource
+import com.farmvision.agrirover.data.datasource.TelemetrySource
 import com.farmvision.agrirover.data.model.AnalyticsKpis
 import com.farmvision.agrirover.data.model.AnalyticsTimeRange
+import com.farmvision.agrirover.data.model.DataOrigin
 import com.farmvision.agrirover.data.model.FarmAlert
 import com.farmvision.agrirover.data.model.PlantItem
 import com.farmvision.agrirover.data.model.RoverTelemetry
 import com.farmvision.agrirover.data.model.SensorDataPoint
+import com.farmvision.agrirover.data.model.SensorReading
+import com.farmvision.agrirover.data.model.SensorType
+import com.farmvision.agrirover.data.model.SoilMoistureDualProbeMapping
 import com.farmvision.agrirover.data.model.TemperatureUnit
+import com.farmvision.agrirover.data.time.SystemTimeProvider
+import com.farmvision.agrirover.data.time.TimeProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Repository interface providing agricultural telemetry, crop profiles, and alert streams.
+ * Unified Agricultural Repository interface.
+ * Implements [TelemetrySource] and [CommandSink] boundaries, providing a single source of truth
+ * for rover telemetry, multi-sensor streams, crop health, alerts, and hardware inventory.
  */
-interface FarmRepository {
-    val telemetryFlow: StateFlow<RoverTelemetry>
+interface FarmRepository : TelemetrySource, CommandSink {
+    /** Hardware component catalog and device profiles source. */
+    val hardwareCatalog: HardwareCatalogSource
+
+    /** Reactive stream of crop/plant profiles. */
     val plantsFlow: StateFlow<List<PlantItem>>
+
+    /** Reactive stream of operational and environmental alerts. */
     val alertsFlow: StateFlow<List<FarmAlert>>
 
-    fun getTelemetry(): RoverTelemetry
     fun getPlants(): List<PlantItem>
     fun getAlerts(): List<FarmAlert>
+    fun getSensorReading(type: SensorType): SensorReading?
 
-    fun updateRoverMovement(command: String, speedKmh: Float)
-    fun setDriveMode(mode: String)
-    fun setEmergencyStop(engaged: Boolean)
     fun togglePlantIrrigation(plantId: String)
     fun clearAllAlerts()
-    fun refreshTelemetry()
-
-    fun toggleFrontLight()
-    fun toggleSideLight()
-    fun triggerHorn()
-    fun toggleSpray()
-    fun toggleAuxIrrigation()
-    fun setCameraTilt(angle: Int)
 
     fun getSoilMoistureHistory(range: AnalyticsTimeRange = AnalyticsTimeRange.Hours24): List<SensorDataPoint>
     fun getTemperatureHistory(range: AnalyticsTimeRange = AnalyticsTimeRange.Hours24, tempUnit: TemperatureUnit = TemperatureUnit.Celsius): List<SensorDataPoint>
@@ -47,9 +53,13 @@ interface FarmRepository {
 
 /**
  * High-fidelity Mock Repository maintaining a single source of truth for all screens.
+ * Backed by deterministic [TimeProvider] and static [HardwareCatalogSource].
  * State updates (e.g. E-Stop or plant irrigation) immediately emit to all observing screens.
  */
-class MockFarmRepository : FarmRepository {
+class MockFarmRepository(
+    val timeProvider: TimeProvider = SystemTimeProvider(),
+    override val hardwareCatalog: HardwareCatalogSource = StaticHardwareCatalogSource()
+) : FarmRepository {
 
     private val initialPlants = listOf(
         PlantItem(
@@ -109,6 +119,68 @@ class MockFarmRepository : FarmRepository {
     private val initialMoisture: Float =
         String.format(java.util.Locale.US, "%.1f", initialPlants.map { it.currentMoisture }.average()).toFloat()
 
+    private val nowEpoch = timeProvider.nowEpochMillis()
+
+    // Canonical sensor readings initialization
+    private val probe1Initial = SensorReading.createValidated(
+        sensorId = SoilMoistureDualProbeMapping.PROBE_1_ID,
+        sensorType = SensorType.SoilMoisture,
+        value = 43.5f,
+        timestampEpochMillis = nowEpoch,
+        nowEpochMillis = nowEpoch
+    )
+    private val probe2Initial = SensorReading.createValidated(
+        sensorId = SoilMoistureDualProbeMapping.PROBE_2_ID,
+        sensorType = SensorType.SoilMoisture,
+        value = 41.0f,
+        timestampEpochMillis = nowEpoch,
+        nowEpochMillis = nowEpoch
+    )
+    private val unifiedMoistureInitial = SoilMoistureDualProbeMapping.computeUnifiedMoisture(
+        probe1Initial, probe2Initial, nowEpoch
+    )
+
+    private val initialSensorReadings: Map<SensorType, SensorReading> = mapOf(
+        SensorType.SoilMoisture to unifiedMoistureInitial,
+        SensorType.AirTemperature to SensorReading.createValidated(
+            sensorId = "sensor-dht22-temp",
+            sensorType = SensorType.AirTemperature,
+            value = 26.8f,
+            timestampEpochMillis = nowEpoch,
+            nowEpochMillis = nowEpoch
+        ),
+        SensorType.Humidity to SensorReading.createValidated(
+            sensorId = "sensor-dht22-humidity",
+            sensorType = SensorType.Humidity,
+            value = 62.3f,
+            timestampEpochMillis = nowEpoch,
+            nowEpochMillis = nowEpoch
+        ),
+        // NOTE: No physical light sensor in inventory; explicitly marked as simulated with no hardware source
+        SensorType.LightIntensity to SensorReading.createValidated(
+            sensorId = "simulated-ambient-lux",
+            sensorType = SensorType.LightIntensity,
+            value = 48500.0f,
+            timestampEpochMillis = nowEpoch,
+            nowEpochMillis = nowEpoch,
+            dataOrigin = DataOrigin.Simulated
+        ),
+        SensorType.SoilPh to SensorReading.createValidated(
+            sensorId = "sensor-soil-ph",
+            sensorType = SensorType.SoilPh,
+            value = 6.8f,
+            timestampEpochMillis = nowEpoch,
+            nowEpochMillis = nowEpoch
+        ),
+        SensorType.UltrasonicDistance to SensorReading.createValidated(
+            sensorId = "sensor-hc-sr04-distance",
+            sensorType = SensorType.UltrasonicDistance,
+            value = 45.0f,
+            timestampEpochMillis = nowEpoch,
+            nowEpochMillis = nowEpoch
+        )
+    )
+
     private val initialTelemetry = RoverTelemetry(
         roverName = "AgriRover Alpha-1",
         connectionStatus = FarmVisionStatusType.DemoData,
@@ -127,8 +199,12 @@ class MockFarmRepository : FarmRepository {
         humidityTrend = FarmVisionTrendDirection.Falling,
         lightLux = 48500,
         lightTrend = FarmVisionTrendDirection.Rising,
-        lastUpdated = "Just now",
-        isSimulation = true
+        lastUpdated = timeProvider.formatRelativeTime(nowEpoch),
+        isSimulation = true,
+        dataOrigin = DataOrigin.Simulated,
+        soilPh = 6.8f,
+        ultrasonicDistanceCm = 45.0f,
+        sensorReadings = initialSensorReadings
     )
 
     private val initialAlerts = listOf(
@@ -158,6 +234,9 @@ class MockFarmRepository : FarmRepository {
     private val _telemetryFlow = MutableStateFlow(initialTelemetry)
     override val telemetryFlow: StateFlow<RoverTelemetry> = _telemetryFlow.asStateFlow()
 
+    private val _sensorReadingsFlow = MutableStateFlow(initialSensorReadings)
+    override val sensorReadingsFlow: StateFlow<Map<SensorType, SensorReading>> = _sensorReadingsFlow.asStateFlow()
+
     private val _plantsFlow = MutableStateFlow(initialPlants)
     override val plantsFlow: StateFlow<List<PlantItem>> = _plantsFlow.asStateFlow()
 
@@ -167,20 +246,35 @@ class MockFarmRepository : FarmRepository {
     override fun getTelemetry(): RoverTelemetry = _telemetryFlow.value
     override fun getPlants(): List<PlantItem> = _plantsFlow.value
     override fun getAlerts(): List<FarmAlert> = _alertsFlow.value
+    override fun getSensorReading(type: SensorType): SensorReading? = _sensorReadingsFlow.value[type]
 
     override fun updateRoverMovement(command: String, speedKmh: Float) {
         if (_telemetryFlow.value.isEmergencyCutoff) return
+        val now = timeProvider.nowEpochMillis()
         _telemetryFlow.update { current ->
+            val mission = when (command) {
+                "FIELD SCAN" -> "Autonomous Field Scan"
+                "RETURN TO DOCK" -> "Returning to Dock"
+                "FORWARD", "REVERSE", "TURN LEFT", "TURN RIGHT" -> "Manual Navigation"
+                else -> if (speedKmh > 0f) "Active Mission" else "Standby • Ready for Dispatch"
+            }
+            val mode = when (command) {
+                "FIELD SCAN" -> "AUTONOMOUS"
+                "RETURN TO DOCK" -> "DOCKING"
+                else -> if (speedKmh > 0f) "MANUAL_DRIVE" else "STANDBY"
+            }
             current.copy(
                 activeCommand = command,
                 speedKmh = speedKmh,
-                roverMode = if (speedKmh > 0f) "MANUAL_DRIVE" else "STANDBY",
-                lastUpdated = "Just now"
+                roverMode = mode,
+                activeMission = mission,
+                lastUpdated = timeProvider.formatRelativeTime(now)
             )
         }
     }
 
     override fun setDriveMode(mode: String) {
+        val now = timeProvider.nowEpochMillis()
         _telemetryFlow.update { current ->
             val updatedSpeed = if (current.speedKmh > 0f && !current.isEmergencyCutoff) {
                 when (mode) {
@@ -194,12 +288,14 @@ class MockFarmRepository : FarmRepository {
             current.copy(
                 driveMode = mode,
                 speedKmh = updatedSpeed,
-                lastUpdated = "Just now"
+                lastUpdated = timeProvider.formatRelativeTime(now)
             )
         }
     }
 
     override fun setEmergencyStop(engaged: Boolean) {
+        val now = timeProvider.nowEpochMillis()
+        val relTime = timeProvider.formatRelativeTime(now)
         _telemetryFlow.update { current ->
             if (engaged) {
                 current.copy(
@@ -207,7 +303,8 @@ class MockFarmRepository : FarmRepository {
                     activeCommand = "EMERGENCY CUTOFF",
                     speedKmh = 0f,
                     roverMode = "E-STOPPED",
-                    lastUpdated = "Just now"
+                    activeMission = "Mission Halted (E-Stop Engaged)",
+                    lastUpdated = relTime
                 )
             } else {
                 current.copy(
@@ -215,7 +312,8 @@ class MockFarmRepository : FarmRepository {
                     activeCommand = "HOLD POSITION",
                     speedKmh = 0f,
                     roverMode = "STANDBY",
-                    lastUpdated = "Just now"
+                    activeMission = "Standby • Ready for Dispatch",
+                    lastUpdated = relTime
                 )
             }
         }
@@ -240,9 +338,27 @@ class MockFarmRepository : FarmRepository {
             }
         }
 
-        // Recalculate average rootzone moisture for shared Home dashboard telemetry
+        // Recalculate rootzone moisture for shared telemetry
         val avgMoisture = _plantsFlow.value.map { it.currentMoisture }.average().toFloat()
-        _telemetryFlow.update { it.copy(soilMoisture = String.format(java.util.Locale.US, "%.1f", avgMoisture).toFloat()) }
+        val formattedMoisture = String.format(java.util.Locale.US, "%.1f", avgMoisture).toFloat()
+        val now = timeProvider.nowEpochMillis()
+
+        val updatedMoistureReading = SensorReading.createValidated(
+            sensorId = "unified-rootzone-moisture",
+            sensorType = SensorType.SoilMoisture,
+            value = formattedMoisture,
+            timestampEpochMillis = now,
+            nowEpochMillis = now
+        )
+
+        _sensorReadingsFlow.update { it + (SensorType.SoilMoisture to updatedMoistureReading) }
+        _telemetryFlow.update {
+            it.copy(
+                soilMoisture = formattedMoisture,
+                sensorReadings = _sensorReadingsFlow.value,
+                lastUpdated = timeProvider.formatRelativeTime(now)
+            )
+        }
     }
 
     override fun clearAllAlerts() {
@@ -250,7 +366,8 @@ class MockFarmRepository : FarmRepository {
     }
 
     override fun refreshTelemetry() {
-        _telemetryFlow.update { it.copy(lastUpdated = "Just now") }
+        val now = timeProvider.nowEpochMillis()
+        _telemetryFlow.update { it.copy(lastUpdated = timeProvider.formatRelativeTime(now)) }
     }
 
     override fun toggleFrontLight() {

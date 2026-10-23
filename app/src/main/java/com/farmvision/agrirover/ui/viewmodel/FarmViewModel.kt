@@ -9,6 +9,8 @@ import com.farmvision.agrirover.data.model.FarmSettings
 import com.farmvision.agrirover.data.model.PlantItem
 import com.farmvision.agrirover.data.model.RoverTelemetry
 import com.farmvision.agrirover.data.model.SensorDataPoint
+import com.farmvision.agrirover.data.model.SensorReading
+import com.farmvision.agrirover.data.model.SensorType
 import com.farmvision.agrirover.data.model.SpeedUnit
 import com.farmvision.agrirover.data.model.TemperatureUnit
 import com.farmvision.agrirover.data.repository.FarmRepository
@@ -30,6 +32,8 @@ class FarmViewModel(
     val telemetry: StateFlow<RoverTelemetry> = repository.telemetryFlow
     val plants: StateFlow<List<PlantItem>> = repository.plantsFlow
     val alerts: StateFlow<List<FarmAlert>> = repository.alertsFlow
+    val sensorReadings: StateFlow<Map<SensorType, SensorReading>> = repository.sensorReadingsFlow
+    val hardwareCatalog = repository.hardwareCatalog
 
     // Reactive persisted user settings
     private val _fallbackSettings = MutableStateFlow(FarmSettings())
@@ -79,6 +83,36 @@ class FarmViewModel(
 
     fun setCameraTilt(angle: Int) {
         repository.setCameraTilt(angle)
+    }
+
+    // --- Phase 5 Home Dashboard Quick Actions ---
+
+    fun startFieldScan() {
+        if (!telemetry.value.isEmergencyCutoff) {
+            repository.updateRoverMovement("FIELD SCAN", 2.0f)
+        }
+    }
+
+    fun returnToDock() {
+        if (!telemetry.value.isEmergencyCutoff) {
+            repository.updateRoverMovement("RETURN TO DOCK", 2.2f)
+        }
+    }
+
+    fun disarmMotors() {
+        repository.setEmergencyStop(true)
+    }
+
+    fun getSpeedStatusLabel(speedKmh: Float = telemetry.value.speedKmh, isEmergencyCutoff: Boolean = telemetry.value.isEmergencyCutoff): String {
+        return when {
+            isEmergencyCutoff -> "Cutoff"
+            speedKmh > 0f -> "Cruising"
+            else -> "Stationary"
+        }
+    }
+
+    fun getGpsStatusLabel(gpsFixStatus: String = telemetry.value.gpsFixStatus): String {
+        return if (gpsFixStatus.contains("Fix", ignoreCase = true) && !gpsFixStatus.contains("No Fix", ignoreCase = true)) "Locked" else "No Fix"
     }
 
     // --- Crop & Farm Actions ---
