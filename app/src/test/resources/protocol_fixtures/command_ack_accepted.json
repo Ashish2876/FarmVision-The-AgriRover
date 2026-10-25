@@ -1,0 +1,8 @@
+{
+  "protocolVersion": "1.0.0",
+  "cmdId": "cmd-170000-001",
+  "status": "ACCEPTED",
+  "reasonCode": null,
+  "latencyMs": 8,
+  "timestampMs": 1700000000008
+}

@@ -67,11 +67,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.farmvision.agrirover.data.model.RoverDriveMode
+import com.farmvision.agrirover.data.model.SpeedPreset
+import com.farmvision.agrirover.ui.rover.controller.VirtualJoystick
+import com.farmvision.agrirover.ui.rover.controller.JoystickVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -136,12 +144,27 @@ import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 @Composable
 fun RoverScreen(
     viewModel: FarmViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToHardwareCenter: (() -> Unit)? = null
 ) {
     val telemetry by viewModel.telemetry.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP || event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.onJoystickReleased()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onJoystickReleased()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -153,13 +176,15 @@ fun RoverScreen(
             RoverLandscapeLayout(
                 telemetry = telemetry,
                 settings = settings,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onNavigateToHardwareCenter = onNavigateToHardwareCenter
             )
         } else {
             RoverPortraitLayout(
                 telemetry = telemetry,
                 settings = settings,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onNavigateToHardwareCenter = onNavigateToHardwareCenter
             )
         }
     }
@@ -172,7 +197,8 @@ fun RoverScreen(
 private fun RoverPortraitLayout(
     telemetry: RoverTelemetry,
     settings: FarmSettings,
-    viewModel: FarmViewModel
+    viewModel: FarmViewModel,
+    onNavigateToHardwareCenter: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -181,7 +207,10 @@ private fun RoverPortraitLayout(
             .padding(horizontal = FarmVisionSpacing.medium, vertical = FarmVisionSpacing.small)
     ) {
         // A. Top Identity & Connection Status Bar
-        RoverTopStatusBar(telemetry = telemetry)
+        RoverTopStatusBar(
+            telemetry = telemetry,
+            onBadgeClick = onNavigateToHardwareCenter
+        )
 
         Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
@@ -198,7 +227,7 @@ private fun RoverPortraitLayout(
             horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
         ) {
             Box(modifier = Modifier.weight(1.1f)) {
-                RoverCameraPreviewCard()
+                RoverCameraPreviewCard(telemetry = telemetry)
             }
             Box(modifier = Modifier.weight(0.9f)) {
                 RoverStatusOverviewCard(telemetry = telemetry, settings = settings)
@@ -245,7 +274,8 @@ private fun RoverPortraitLayout(
 private fun RoverLandscapeLayout(
     telemetry: RoverTelemetry,
     settings: FarmSettings,
-    viewModel: FarmViewModel
+    viewModel: FarmViewModel,
+    onNavigateToHardwareCenter: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -260,7 +290,10 @@ private fun RoverLandscapeLayout(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            RoverTopStatusBar(telemetry = telemetry)
+            RoverTopStatusBar(
+                telemetry = telemetry,
+                onBadgeClick = onNavigateToHardwareCenter
+            )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
@@ -269,7 +302,7 @@ private fun RoverLandscapeLayout(
                 horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
             ) {
                 Box(modifier = Modifier.weight(1.1f)) {
-                    RoverCameraPreviewCard()
+                    RoverCameraPreviewCard(telemetry = telemetry)
                 }
                 Box(modifier = Modifier.weight(0.9f)) {
                     RoverStatusOverviewCard(telemetry = telemetry, settings = settings)
@@ -320,7 +353,10 @@ private fun RoverLandscapeLayout(
 // ============================================================================
 
 @Composable
-private fun RoverTopStatusBar(telemetry: RoverTelemetry) {
+private fun RoverTopStatusBar(
+    telemetry: RoverTelemetry,
+    onBadgeClick: (() -> Unit)? = null
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -379,6 +415,12 @@ private fun RoverTopStatusBar(telemetry: RoverTelemetry) {
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Text(
+                            text = " • ${telemetry.lastUpdated}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = FreshLeaf,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -389,7 +431,8 @@ private fun RoverTopStatusBar(telemetry: RoverTelemetry) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = FreshLeaf.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, FreshLeaf.copy(alpha = 0.5f))
+                    border = BorderStroke(1.dp, FreshLeaf.copy(alpha = 0.5f)),
+                    modifier = Modifier.clickable { onBadgeClick?.invoke() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -402,8 +445,15 @@ private fun RoverTopStatusBar(telemetry: RoverTelemetry) {
                                 .background(FreshLeaf)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
+                        val isDemo = telemetry.isSimulation || telemetry.connectionStatus == FarmVisionStatusType.DemoData
+                        val connectionText = when {
+                            isDemo -> "Online (Demo)"
+                            telemetry.connectionStatus == FarmVisionStatusType.Active -> "Online (Live)"
+                            telemetry.connectionStatus == FarmVisionStatusType.Error -> "Offline"
+                            else -> "Online"
+                        }
                         Text(
-                            text = "Online (Demo)",
+                            text = connectionText,
                             style = MaterialTheme.typography.labelSmall,
                             color = FreshLeaf,
                             fontWeight = FontWeight.Bold
@@ -448,7 +498,7 @@ private fun RoverTopStatusBar(telemetry: RoverTelemetry) {
 // ============================================================================
 
 @Composable
-private fun RoverCameraPreviewCard() {
+private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -516,8 +566,8 @@ private fun RoverCameraPreviewCard() {
             ) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f))
+                    color = Color.Black.copy(alpha = 0.75f),
+                    border = BorderStroke(1.dp, Color(0xFFE74C3C).copy(alpha = 0.6f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -527,14 +577,14 @@ private fun RoverCameraPreviewCard() {
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(Color.Red)
+                                .background(Color(0xFFE74C3C))
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Live Camera (Demo)",
+                            text = "SIMULATED CAMERA STREAM • HARDWARE DISCONNECTED",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -560,16 +610,16 @@ private fun RoverCameraPreviewCard() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .background(Color.Black.copy(alpha = 0.6f))
+                    .background(Color.Black.copy(alpha = 0.7f))
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "FPS: 30 • 640x480",
+                    text = "HDG: 184° S (Simulated) • TILT: ${telemetry.cameraTiltAngle}° (Simulated)",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.LightGray,
-                    fontSize = 10.sp
+                    fontSize = 9.sp
                 )
                 Surface(
                     shape = RoundedCornerShape(4.dp),
@@ -579,18 +629,18 @@ private fun RoverCameraPreviewCard() {
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.LightMode,
-                            contentDescription = null,
-                            tint = Color(0xFFF39C12),
-                            modifier = Modifier.size(12.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(FreshLeaf)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "Day Mode",
+                            text = "28ms (Simulated)",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
-                            fontSize = 9.sp
+                            fontSize = 8.sp
                         )
                     }
                 }
@@ -1272,67 +1322,55 @@ private fun MainControllerCockpit(
             // Header for section
             FarmVisionSectionHeader(
                 title = "Piloting Controls",
-                description = "Tactile directional vector actuation (${telemetry.driveMode} Mode)"
+                description = "Tactile Vector & Directional Cockpit (${telemetry.driveModeEnum.label} • ${telemetry.speedPreset.label})"
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
-            // 1. Mode Selector Pill Bar
+            // 1. Drive Mode Selector Pill Bar
             ControlModePillBar(
-                currentDriveMode = telemetry.driveMode,
+                currentMode = telemetry.driveModeEnum,
                 onModeSelect = { viewModel.setDriveMode(it) }
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 2. Speed Presets Bar with Mandatory Uncalibrated Disclaimer
+            SpeedPresetPillBar(
+                currentPreset = telemetry.speedPreset,
+                onPresetSelect = { viewModel.setSpeedPreset(it) }
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
-            // 2. Cockpit Row: Speed Slider Column + Central Circular D-Pad + Auxiliary Controls Grid
+            // 3. Primary Tactile Vector Piloting (Virtual Joystick + Differential Kinematics HUD)
+            PrimaryJoystickCockpitRow(
+                telemetry = telemetry,
+                settings = settings,
+                viewModel = viewModel
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+
+            // 4. Secondary Directional Controls Row: Accessible Circular D-Pad + Auxiliary Controls Grid
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // A. Left Column: Discrete Speed Stepper & Vertical Slider
-                SpeedControlColumn(
-                    currentSpeedKmh = telemetry.speedKmh,
-                    driveMode = telemetry.driveMode,
-                    speedUnit = settings.speedUnit,
-                    isCutoff = telemetry.isEmergencyCutoff,
-                    onSpeedStepUp = {
-                        val nextMode = when (telemetry.driveMode) {
-                            "Precision" -> "Normal"
-                            "Normal" -> "Turbo"
-                            else -> "Turbo"
-                        }
-                        viewModel.setDriveMode(nextMode)
-                    },
-                    onSpeedStepDown = {
-                        val prevMode = when (telemetry.driveMode) {
-                            "Turbo" -> "Normal"
-                            "Normal" -> "Precision"
-                            else -> "Precision"
-                        }
-                        viewModel.setDriveMode(prevMode)
-                    }
-                )
-
-                // B. Center: Circular D-Pad Directional Controller
+                // Circular D-Pad with central STOP (Preserved for accessibility & existing tests)
                 CircularDirectionalController(
                     activeCommand = telemetry.activeCommand,
-                    isEnabled = !telemetry.isEmergencyCutoff,
+                    isEnabled = !telemetry.isEmergencyCutoff && telemetry.driveModeEnum.allowsManualDrive,
                     onDirectionClick = { direction ->
-                        val targetSpeed = when (telemetry.driveMode) {
-                            "Precision" -> 1.5f
-                            "Turbo" -> 5.5f
-                            else -> 3.5f
-                        }
-                        viewModel.updateRoverMovement(direction, targetSpeed)
+                        viewModel.updateRoverMovement(direction, telemetry.speedPreset.maxSpeedKmh)
                     },
                     onStopClick = {
                         viewModel.updateRoverMovement("HOLD POSITION", 0.0f)
                     }
                 )
 
-                // C. Right Column: Auxiliary Controls (2x2 grid + Chute stepper)
+                // Auxiliary Controls (2x2 grid + Tool Arm Stepper)
                 AuxiliaryControlsGrid(
                     telemetry = telemetry,
                     viewModel = viewModel
@@ -1341,7 +1379,7 @@ private fun MainControllerCockpit(
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
-            // 3. Bottom Row: Camera Tilt Stepper + Prominent STOP Button + Irrigation / Spray Toggles
+            // 5. Bottom Row: Camera Tilt Stepper + Prominent STOP Button + Irrigation / Spray Toggles
             BottomCockpitRow(
                 telemetry = telemetry,
                 viewModel = viewModel
@@ -1351,30 +1389,31 @@ private fun MainControllerCockpit(
 }
 
 /**
- * Control Mode Pill Bar: Manual Control (Active), Auto Mode (Demo), Follow Path (Demo), Field Scan (Demo)
+ * Drive Mode Selector Pills: Manual, Autonomous Waypoint (Simulated), Hold Position (Stop)
  */
 @Composable
 private fun ControlModePillBar(
-    currentDriveMode: String,
-    onModeSelect: (String) -> Unit
+    currentMode: RoverDriveMode,
+    onModeSelect: (RoverDriveMode) -> Unit
 ) {
     val modes = listOf(
-        "Precision" to "Precision (1.5 km/h)",
-        "Normal" to "Normal (3.5 km/h)",
-        "Turbo" to "Turbo (5.5 km/h)"
+        RoverDriveMode.Manual to "Manual",
+        RoverDriveMode.AutonomousWaypoint to "Auto Waypoint (Demo)",
+        RoverDriveMode.HoldPosition to "Hold Position"
     )
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
     ) {
-        modes.forEach { (modeKey, label) ->
-            val isSelected = currentDriveMode == modeKey
+        modes.forEach { (mode, label) ->
+            val isSelected = currentMode == mode
             Surface(
                 modifier = Modifier
                     .weight(1f)
                     .height(36.dp)
-                    .clickable { onModeSelect(modeKey) },
+                    .testTag("rover_mode_${mode.name.lowercase()}")
+                    .clickable { onModeSelect(mode) },
                 shape = RoundedCornerShape(10.dp),
                 color = if (isSelected) PrimaryGreen else DarkSurfaceContainerHigh,
                 border = BorderStroke(
@@ -1384,12 +1423,187 @@ private fun ControlModePillBar(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = modeKey,
+                        text = label,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 9.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Speed Preset Selector: Low (1.5 km/h), Medium (3.5 km/h), High (5.5 km/h)
+ * with mandatory disclaimer: "Software Preset • Uncalibrated Duty Cycle"
+ */
+@Composable
+private fun SpeedPresetPillBar(
+    currentPreset: SpeedPreset,
+    onPresetSelect: (SpeedPreset) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
+        ) {
+            SpeedPreset.values().forEach { preset ->
+                val isSelected = currentPreset == preset
+                val label = "${preset.label} (${preset.maxSpeedKmh} km/h • ${(preset.dutyFraction * 100).toInt()}%)"
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp)
+                        .testTag("rover_speed_${preset.name.lowercase()}")
+                        .clickable { onPresetSelect(preset) },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) FreshLeaf.copy(alpha = 0.25f) else DarkSurfaceContainerHigh,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) FreshLeaf else MaterialTheme.colorScheme.outline
+                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 9.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Mandatory disclaimer
+        Text(
+            text = SpeedPreset.DISCLAIMER,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * Primary Tactile Vector Piloting Row: Virtual Joystick + Differential Kinematics HUD
+ */
+@Composable
+private fun PrimaryJoystickCockpitRow(
+    telemetry: RoverTelemetry,
+    settings: FarmSettings,
+    viewModel: FarmViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainerHigh.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(FarmVisionSpacing.small),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: Virtual Joystick
+            VirtualJoystick(
+                size = 140.dp,
+                knobSize = 50.dp,
+                isEnabled = !telemetry.isEmergencyCutoff,
+                driveMode = telemetry.driveModeEnum,
+                onVectorChanged = { viewModel.onJoystickMoved(it) },
+                onRelease = { viewModel.onJoystickReleased() }
+            )
+
+            Spacer(modifier = Modifier.width(FarmVisionSpacing.small))
+
+            // Right: Vector & Differential Output Telemetry Box
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Tactile Vector Telemetry",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = FreshLeaf,
+                    fontSize = 11.sp
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = DarkSurface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        val diff = com.farmvision.agrirover.ui.rover.controller.JoystickMath.computeDifferentialMix(telemetry.joystickVector)
+                        val leftPct = (diff.left * 100).toInt()
+                        val rightPct = (diff.right * 100).toInt()
+                        val displaySpeed = settings.speedUnit.format(telemetry.speedKmh)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Speed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                            Text(text = displaySpeed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (telemetry.isEmergencyCutoff) MaterialTheme.colorScheme.error else FreshLeaf, fontSize = 9.sp)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Duty Cycle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                            Text(text = "${(telemetry.joystickVector.magnitude * telemetry.speedPreset.dutyFraction * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Diff Mix", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                            Text(text = "L: ${leftPct}% | R: ${rightPct}%", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Vector", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                            Text(
+                                text = "(${String.format(java.util.Locale.US, "%.2f", telemetry.joystickVector.x)}, ${String.format(java.util.Locale.US, "%.2f", telemetry.joystickVector.y)})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (telemetry.joystickVector.isNeutral) Color.Gray else FreshLeaf,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Single-touch tracking • Secondary touch can engage E-Stop",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 8.sp,
+                    lineHeight = 10.sp
+                )
             }
         }
     }

@@ -223,3 +223,157 @@ Telemetry timestamps and staleness calculations are governed by an injectable `T
 
 ### 9.4 Hardware Inventory Specification
 The 23 physical components are documented in detail in [`docs/hardware-data-model.md`](hardware-data-model.md), with all pin numbers unassigned by default and configuration marked as draft.
+
+---
+
+## 10. Phase 6 Advanced Rover Controller Architecture
+
+Phase 6 implements the tactile piloting and safety control interface for the FarmVision AgriRover:
+
+### 10.1 Virtual 2-Axis Joystick & Touch Input
+- **Perimeter Clamping**: The joystick displacement is constrained to a unit circle ($r \le 1.0$), ensuring that diagonal deflections do not exceed maximum permissible motor commands:
+  $$r = \sqrt{x^2 + y^2}, \quad (x', y') = \begin{cases} (x, y) & \text{if } r \le 1.0 \\ \left(\frac{x}{r}, \frac{y}{r}\right) & \text{if } r > 1.0 \end{cases}$$
+- **Continuous Radial Dead Zone**: A dead zone threshold of $r_{\text{dead}} = 0.08$ is enforced radially to eliminate accidental drift and analog thumb wobble. Deflections outside the dead zone are smoothly rescaled from 0 to 1 so no sudden step in velocity occurs:
+  $$\vec{v}_{\text{dead}} = \begin{cases} (0, 0) & \text{if } r \le r_{\text{dead}} \\ \frac{r - r_{\text{dead}}}{1.0 - r_{\text{dead}}} \cdot \frac{\vec{v}}{r} & \text{if } r > r_{\text{dead}} \end{cases}$$
+- **Single-Pointer Tracking**: Touch gestures track only the primary controlling finger, allowing simultaneous multi-touch interaction where a secondary finger can trigger Emergency Stop without pointer conflict.
+- **Spring-to-Center Physics**: On gesture release, pointer cancel, or lifecycle events (`ON_PAUSE`, `ON_STOP`), the knob returns to center via a physics spring animation and emits a neutral zero vector immediately.
+
+### 10.2 Command Pipeline & 20 Hz Rate Limiter
+- **Frequency Capping**: High-rate touch drag events (often >60–120 Hz) are throttled to 20 Hz (50 ms minimum interval) via `RoverCommandPipeline` to prevent saturating the radio/simulation link.
+- **Trailing Emission**: The latest-wins policy ensures that when a gesture pauses, the final target vector is dispatched rather than lost.
+- **Immediate Failsafe Bypass**: Neutral vectors ($(0, 0)$) and Emergency Stop commands bypass the rate limiter, executing synchronously and cancelling pending scheduled dispatches.
+- **Consecutive Duplicate Suppression**: Identical non-neutral vectors are suppressed to minimize redundant traffic.
+
+### 10.3 Differential Steering Kinematics
+Normalized Cartesian joystick vectors $(x, y)$ (where $+y$ represents forward and $+x$ represents right) are mapped to left and right motor duty cycles using standard differential drive kinematics:
+$$\text{left} = \text{clamp}(y + x, -1.0, 1.0), \quad \text{right} = \text{clamp}(y - x, -1.0, 1.0)$$
+
+### 10.4 Speed Presets & Drive Mode Enforcement
+- **Speed Presets**: Low (1.5 km/h, 30% duty cycle), Medium (3.5 km/h, 65% duty cycle), and High (5.5 km/h, 100% duty cycle). Presets scale the joystick output vector and include the mandatory user disclaimer: *"Software Preset • Uncalibrated Duty Cycle"*.
+- **Drive Modes**: `Manual` (piloting enabled), `AutonomousWaypoint` (piloting disabled; autonomous waypoint demo), and `HoldPosition` (piloting disabled; zero velocity). In non-manual modes, joystick drag inputs are rejected.
+
+### 10.5 Dual Controller Coexistence & Accessibility
+- The Phase 6 `VirtualJoystick` coexists with the legacy `CircularDirectionalController` (D-pad with center STOP), maintaining full accessibility, semantic state descriptions, and backward compatibility with all `rover_ctrl_*` automated tests.
+
+---
+
+## 11. Phase 7 Farm, Plot & Plant Management Architecture
+
+Phase 7 implements comprehensive agricultural land and crop management across a strict three-tier hierarchy:
+
+### 11.1 Agricultural Domain Hierarchy
+- **Farm**: Represents a distinct physical agricultural parcel (name, description, location description, area in canonical $m^2$, notes, `RecordOrigin` classification).
+- **Plot**: Represents a delineated zone or furrow within a Farm (foreign key `farmId`, unique name per farm, area, notes).
+- **Planting**: Represents an individual crop seeding or transplant within a Plot (foreign key `plotId`, crop name, variety, optional planting date, `GrowthStage`, `PlantHealthStatus`, estimated days to harvest, user notes).
+- **Record Origins**: Distinguishes seed demonstration data (`RecordOrigin.SAMPLE`) from operator-entered records (`RecordOrigin.USER`).
+
+### 11.2 Atomic JSON Storage Engine & Versioned Schema
+- **Zero-Dependency Engine**: Built entirely with standard Kotlin and Java standard library file APIs (`File`, `FileOutputStream`, `FileDescriptor.sync()`), eliminating heavy external dependencies.
+- **Versioned Envelope Schema**: Persisted under `schemaVersion = 1` with ISO-8601 timestamps and atomic payload formatting.
+- **ACID-Compliant File Operations**: Writes are serialized via reentrant locks, streamed to a temporary sibling file (`farmvision_data.json.tmp`), synced to physical storage via `fd.sync()`, and atomically replaced via `java.nio.file.Files.move(..., ATOMIC_MOVE, REPLACE_EXISTING)` (falling back to atomic delete-and-rename).
+- **Corruption Resilience**: If storage is corrupted or unreadable, the repository logs the condition, retains the damaged file as `.corrupt.<timestamp>`, and resets safely to seed data without crashing.
+
+### 11.3 Area Calculations & Canonical Units
+- **Canonical Storage**: All land footprints are stored in square meters ($m^2$).
+- **Unit Conversions**: Bidirectional conversion between $m^2$, hectares (ha, $10,000\text{ m}^2$), and international acres (ac, $4,046.8564224\text{ m}^2$).
+- **Physical Bounds**: Sanity-checked within $0.0 < \text{area} \le 100,000,000\text{ m}^2$ ($10,000\text{ ha}$).
+
+### 11.4 Atomic Cascading Deletion & Confirmation
+- **Strict Referential Integrity**: Deleting a Farm cascades atomically to all child Plots and Plantings. Deleting a Plot cascades to all child Plantings.
+- **Transparent Previews**: The deletion workflow generates an immutable `DeletionReport` preview before execution, displaying exact counts of affected entities in an accessible confirmation dialog (`DeleteConfirmationDialog`).
+
+### 11.5 Planting Dates & Chronological Sorting Rules
+- **Nullable Dates**: Planting dates are optional and preserved as null when unknown, never defaulting to today.
+- **Future Dates & Planned Badge**: Dates in the future are fully supported and labeled with a dedicated "Planned" badge.
+- **Sorting Consistency**: In both ascending (oldest first) and descending (newest first) chronological sorts, plantings with unknown/null dates sort last, with entity IDs serving as a deterministic tie-breaker.
+
+### 11.6 Decoupled Simulation & Home Stream Unification
+- **Projections vs Persistence**: Agricultural identity and crop attributes are owned by `FarmManagementRepository`. Soil hydration simulation and watering schedules are managed by `CropSimulationState`.
+- **Single Source of Truth**: The unified `FarmRepository` and `FarmViewModel` project `plantingsFlow` joined with `plotsFlow` and `farmsFlow` directly into `plantsFlow`, ensuring Home dashboard and My Farm screens reflect identical counts and statuses in real time.
+- **Physical Boundary**: Soil moisture probes are rover-mounted; no telemetry sensor is mapped to static plots or plantings.
+
+---
+
+## 12. Track H — Hardware Center, Protocol & Capabilities Architecture
+
+Track H introduces physical microcontroller integration, truthful hardware presentation, and formal versioned communication contracts:
+
+### 12.1 Truthful Hardware State Model & 7 Status Axes
+The Hardware Center presents the 23-item hardware inventory without synthetic claims:
+1. **Endpoint Connection Status**: Unknown, Disconnected, Connecting, Connected, Stale, NotConfigured.
+2. **Telemetry Freshness**: Fresh (< 3s), Stale (3–10s), Unavailable (> 10s), Unknown (injected clock).
+3. **Sensor/Diagnostic Health**: Healthy, Warning, Fault, Unavailable, Uncalibrated, Unknown.
+4. **Actuator Command State**: Idle, Commanded, Acknowledged, Rejected, TimedOut, Expired, HaltedByEStop, Unknown.
+5. **Physical Feedback State**: Actuators without encoder or flow sensors strictly report `No Physical Feedback Hardware` (closed-loop feedback is never fabricated).
+6. **Configuration Maturity Status**: Re-exported from domain (`NotConfigured`, `Draft`, `Verified`). Marking hardware as `Verified` is strictly prohibited without user-confirmed physical evidence.
+7. **Inventory Presence**: Passive or mechanical components are cataloged with no false electronic connectivity implied.
+
+### 12.2 Dual-Endpoint Microcontroller Topology
+- **Main ESP32 DevKit V1** (`http://192.168.4.1:80` by default): Controls sensors (soil moisture, DHT22, pH, ultrasonic), locomotion motors (TB6612FNG), servos, and irrigation relays.
+- **ESP32-CAM** (`http://192.168.4.2:81` by default): Dedicated vision endpoint providing OV2640 camera status and MJPEG stream (`/stream`). The camera endpoint **never** carries drive or actuation commands.
+
+### 12.3 Capabilities Discovery & Firmware Stages
+- **Capabilities Manifest** (`GET /api/v1/capabilities`): Android discovers hardware dynamically upon connection. Microcontrollers report active sensors, actuators, and feature flags.
+- **Stage F0 (Sensors Only)**: Initial safe firmware stage. Locomotion motors, servos, and pumps are compiled with actuators disabled. Actuator commands are rejected with `ERR_ACTUATOR_DISABLED`.
+- **Stage F1 (Sensors + Actuators)**: Enabled only after physical wiring is verified and the user grants `WIRING CONFIRMED`.
+
+### 12.4 Command Dispatch, Deadman Timing & Safety Invariants
+- **250 ms Deadman Expiry**: Continuous drive commands carry `ttlMs = 250`. Firmware automatically halts locomotion motors if a valid command packet is not received within 250 ms.
+- **Pump Relay Safety Cutoff**: Submersible pump relay commands enforce a maximum duration of **10,000 ms** (10s) with automatic hardware cutoff.
+- **Emergency Stop Safety Cutoff**: Dispatched via high-priority `POST /api/v1/emergency-stop`. Latches E-Stop in firmware, immediately cutting motor PWM and opening the pump relay.
+- **Payload Guard & Numeric Sanitizer**: Maximum payload limit is 4,096 bytes (`ERR_PAYLOAD_TOO_LARGE`). Unquoted or non-finite numbers (`NaN`, `Infinity`, `-Infinity`) are strictly rejected with `ERR_INVALID_PARAMETER`.
+- **Monotonic Sequences**: Command and telemetry packets carry strictly increasing 64-bit sequence numbers. Duplicate or out-of-order packets are dropped.
+- **Network Boundaries**: Scoped cleartext XML permits communication exclusively with the rover subnet (`192.168.4.0/24`) and loopback; Android `ConnectivityManager` network binding routes traffic via the rover SoftAP Wi-Fi interface.
+
+### 12.5 Android Networking Layer & Wi-Fi SoftAP Routing (Milestone H4)
+- **Scoped Cleartext Configuration**: `res/xml/network_security_config.xml` strictly confines cleartext HTTP to `192.168.4.1`, `192.168.4.2`, the `192.168.4.0/24` subnet, Android emulator loopback (`10.0.2.2`), and `localhost`. App-wide cleartext is rejected by `base-config cleartextTrafficPermitted="false"`.
+- **Wi-Fi SoftAP Network Binding**: The rover's ESP32 SoftAP does not provide upstream internet access. The `RoverNetworkBinder` monitors Wi-Fi availability via `ConnectivityManager.NetworkCallback` and binds all application socket traffic using `bindProcessToNetwork(network)`, preventing Android from routing rover HTTP requests over cellular data.
+- **REST Protocol Client & Live Polling**: `RoverProtocolClient` orchestrates typed requests (`fetchCapabilities`, `fetchTelemetry`, `dispatchCommand`, `dispatchEmergencyStop`, `probeEndpoint`). When operating in Live mode, manual refresh or polling queries `GET /api/v1/telemetry`, dynamically updating sensor values and fresh timestamps.
+- **Graceful Error Translation**: Network failures (`SocketTimeoutException`, `ConnectException`, HTTP 401, HTTP 404, HTTP 503) are caught, translated into `ConnectionDiagnosticResult` and `EndpointConnectionStatus.Disconnected`, and surfaced without application crashes.
+- **Token Redaction Invariant**: Secret authorization tokens (`X-AgriRover-Token`) are redacted in log messages, URLs, and diagnostic displays.
+
+### 12.6 ESP32 Stage F0 Real-Time Firmware & FreeRTOS Safety Core (Milestone H5)
+- **Dual-Core FreeRTOS Partitioning**:
+  - **Core 0 (TaskComm, 50 Hz)**: Manages Wi-Fi SoftAP (`192.168.4.1:80`, `AgriRover-AP`), client socket handling, `X-AgriRover-Token` validation, and JSON payload serialization via `ArduinoJson`.
+  - **Core 1 (TaskSensing, 10 Hz)**: Samples analog capacitive soil moisture (ADC1 Ch4), DHT22 temperature and humidity, analog soil pH (ADC1 Ch7), and ultrasonic obstacle pulse duration (10µs trigger pulse, 58.2 µs/cm echo timing).
+  - **Core 1 (TaskSafetyWatchdog, 20 Hz)**: Monitors the 250 ms deadman expiration timer and Emergency Stop state latch, immediately triggering physical actuator cutoff if communication stalls.
+- **Stage F0 Actuator Lockout**: In Stage F0, all locomotion motor pins (TB6612FNG PWMA/B, AIN1/2, BIN1/2, STBY), servos, and the submersible pump relay are compiled disabled (`ACTUATORS_ENABLED = 0`). Any actuation commands dispatched over HTTP return HTTP 403 `ERR_ACTUATOR_DISABLED`.
+- **Emergency Stop Latching Core**: Dispatched via `POST /api/v1/emergency-stop`, latches `_isEStopLatched = true`, de-energizes the relay, cuts motor PWM, and rejects subsequent motion commands with HTTP 423 `ERR_EMERGENCY_STOP_ACTIVE` until explicit reset.
+- **Flashing Authorization Gating**: Firmware source resides cleanly in `firmware/esp32-main/` with `platformio.ini` and `README.md`. Serial flashing to physical microcontrollers remains locked until explicit user authorization (`AUTHORIZE FLASH`).
+
+### 12.7 Safe Stage F1 Actuation & Physical Verification Architecture (Milestone H6)
+- **TB6612FNG Differential Locomotion Engine**: Implemented in `ActuatorManager`. Features 20 kHz ultrasonic motor PWM (silent operation), 5% analog deadband threshold, software slew rate limiter ($\Delta \le 0.20$ per loop to prevent inrush battery sag), and standby pin management.
+- **Kinematic Servos**: Camera tilt, soil probe insertion, and ultrasonic pan servos are controlled via 50 Hz PWM with safe software limits ($[0^\circ, 180^\circ]$) and default center-on-boot positions.
+- **Irrigation Pump 10s Auto-Cutoff**: Commands specifying relay duration are clamped to $\le 10,000\text{ ms}$ (10s). The FreeRTOS safety watchdog task monitors elapsed time at 20 Hz and automatically opens relay contacts upon timer expiration, preventing flooding.
+- **250 ms Deadman Failsafe**: Continuous drive packets carry a 250 ms TTL. If no valid packet arrives within 250 ms, `ActuatorManager::stopAllActuators()` immediately sets PWM to 0 and pulls STBY LOW.
+### 12.8 Final Hardware Center Integration & Handover Architecture (Milestone H7)
+- **Unified Network & Safety Architecture**: Android application seamlessly manages Demo Simulation vs. Live Wi-Fi SoftAP modes via `SharedPreferencesHardwareSettingsRepository` and `RoverNetworkBinder`. Cleartext traffic is strictly scoped to `192.168.4.0/24` and local test environments.
+- **Physical Feedback Honesty Invariants**: Enforces strict reporting of open-loop actuators (BO motors, hobby servos, relay-driven submersible pump) as `PhysicalFeedbackState.NotAvailable` with warning badges. Synthetic closed-loop feedback is prohibited.
+- **End-to-End Handover Specification**: Comprehensive documentation in `docs/hardware-handover.md` details operational modes, candidate pinouts, level-shifting requirements, bench test invariants (wheels off ground), serial flashing procedures (`AUTHORIZE FLASH`), two-stage actuator enablement (`WIRING CONFIRMED`), and protocol v1.0.0 reference.
+- **Full Regression & Accessibility Verification**: All 19 unit test suites (180 tests) pass with 100% success. Screen readers, heading semantics, contrast compliance, and 2.0x font scaling verified.
+
+### 12.9 Sensor Monitoring, Android–Firmware Integration & Release Readiness (Phase 8)
+- **Fail-Safe E-Stop & Deliberate Authenticated Reset**:
+  - `POST /api/v1/emergency-stop` executes unconditionally without requiring authentication, guaranteeing that network packet delivery can transition the rover into a safe cutoff state even if tokens expire, drift, or corrupt.
+  - Reset route (`POST /api/v1/emergency-stop/reset`) strictly enforces authenticated Bearer token validation with constant-time equality checks (`constantTimeEquals()`) to prevent timing side-channel attacks.
+  - Reset transition guarantees all actuator outputs remain de-energized (zero PWM duty cycle, STBY LOW, relay open) until explicit subsequent commands are issued.
+  - Reconciled reasonCode is canonicalized as `"ESTOP_RESET"` across firmware C++, documentation, and Android contract tests.
+- **Pin Map & Physical Invariant Governance**:
+  - Single source of truth for pin configuration is anchored in `firmware/esp32-main/include/config.h`.
+  - GPIO 5 is maintained as `DRAFT / UNVERIFIED` due to ESP32 boot strapping (`VSPI CS0`) pull-up and boot glitch characteristics, with candidate GPIO 33 proposed under engineering review.
+  - Hardware documentation in `docs/hardware-wiring-checklist.md` and `docs/hardware-first-connection-checklist.md` details voltage divider level shifting (5V -> 3.3V on HC-SR04 Echo) and unified star ground topology.
+- **Android Connection Layer & Per-Request Network Binding**:
+  - `RoverNetworkBinder` exposes `activeNetwork: Network?`, enabling `StandardRoverHttpClient` to bind sockets per-request via `boundNetwork.openConnection(url)`. This ensures that even when Android is connected to a cellular data connection with internet, all rover HTTP requests are routed strictly through the Wi-Fi SoftAP interface.
+  - Android security configuration (`network_security_config.xml`) restricts cleartext traffic strictly to `192.168.4.1`, `192.168.4.2`, and local test environments.
+  - Typed connection states (`EndpointConnectionStatus.Timeout`, `EndpointConnectionStatus.Error`) provide unambiguous diagnostic feedback.
+- **Dual-Probe Soil Moisture Pipeline & Sensor Truthfulness**:
+  - Capacitive Probe 1 provides primary rootzone volumetric moisture readings.
+  - Capacitive Probe 2 reports uncalibrated raw 12-bit ADC counts without invented linear calibration or synthetic percentages. Saturation detection flags counts $\le 50$ or $\ge 4050$ with `SensorHealthStatus.Warning` (`"counts (Saturated/Suspect)"`).
+  - Non-existent sensors in the physical bill of materials (lux, liquid flow, soil temperature) are omitted from measured telemetry payloads.
+- **Camera Stream Validation**:
+  - `RoverProtocolClient.validateCameraStream()` validates HTTP 200, Content-Type (`multipart/x-mixed-replace` or `image/jpeg`), and non-empty byte frames without adding heavyweight third-party dependencies.
+  - UI labels the viewport as simulated until physical hardware is commissioned.
+- **Comprehensive Quality Baseline**:
+  - 188 JVM unit tests passing offline across 20 test classes.
+  - 22/22 connected Android instrumented tests passing on Android Emulator.
+  - Automated contract compatibility test suite (`FirmwareContractCompatibilityTest`) enforcing byte-for-byte schema and pin alignment between firmware and Android client.

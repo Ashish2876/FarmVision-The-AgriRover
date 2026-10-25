@@ -57,7 +57,7 @@ class FarmVisionAppTest {
         composeTestRule.onNodeWithTag("nav_my_farm").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("nav_my_farm").assertIsSelected()
-        composeTestRule.onNodeWithText("Plots • Crop Catalog • Irrigation Advice").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Farms • Plots • Crop Catalog • Irrigation").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roma Tomato").performScrollTo().assertIsDisplayed()
 
         // 4. Navigate to Analytics via testTag
@@ -99,7 +99,7 @@ class FarmVisionAppTest {
         composeTestRule.onNodeWithText("View All").performScrollTo().performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("nav_my_farm").assertIsSelected()
-        composeTestRule.onNodeWithText("Plots • Crop Catalog • Irrigation Advice").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Farms • Plots • Crop Catalog • Irrigation").assertIsDisplayed()
     }
 
     @Test

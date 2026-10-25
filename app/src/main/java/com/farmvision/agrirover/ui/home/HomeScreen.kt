@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeveloperBoard
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.GpsFixed
 import androidx.compose.material.icons.rounded.Home
@@ -108,7 +109,8 @@ fun HomeScreen(
     viewModel: FarmViewModel,
     onNavigateToRover: () -> Unit,
     onNavigateToFarm: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToHardwareCenter: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -137,7 +139,8 @@ fun HomeScreen(
             HomeTopBar(
                 alertCount = alerts.size,
                 onRefresh = { viewModel.refreshTelemetry() },
-                onNotificationClick = { viewModel.setNotificationSheetOpen(true) }
+                onNotificationClick = { viewModel.setNotificationSheetOpen(true) },
+                onHardwareCenterClick = onNavigateToHardwareCenter
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
@@ -868,7 +871,9 @@ private fun NotificationSheetContent(
                 verticalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
             ) {
                 alerts.forEach { alert ->
-                    AlertItemCard(alert = alert)
+                    androidx.compose.runtime.key(alert.id) {
+                        AlertItemCard(alert = alert)
+                    }
                 }
                 Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
             }
@@ -880,7 +885,8 @@ private fun NotificationSheetContent(
 private fun HomeTopBar(
     alertCount: Int,
     onRefresh: () -> Unit,
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    onHardwareCenterClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -921,6 +927,14 @@ private fun HomeTopBar(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onHardwareCenterClick != null) {
+                FarmVisionIconButton(
+                    icon = Icons.Rounded.DeveloperBoard,
+                    contentDescription = "Hardware Center",
+                    onClick = onHardwareCenterClick
+                )
+            }
+
             FarmVisionIconButton(
                 icon = Icons.Rounded.Refresh,
                 contentDescription = "Refresh Telemetry",

@@ -1,19 +1,24 @@
 package com.farmvision.agrirover.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.farmvision.agrirover.data.local.SettingsPreferencesManager
 import com.farmvision.agrirover.data.model.AnalyticsKpis
 import com.farmvision.agrirover.data.model.AnalyticsTimeRange
 import com.farmvision.agrirover.data.model.FarmAlert
 import com.farmvision.agrirover.data.model.FarmSettings
 import com.farmvision.agrirover.data.model.PlantItem
+import com.farmvision.agrirover.data.model.RoverDriveMode
 import com.farmvision.agrirover.data.model.RoverTelemetry
 import com.farmvision.agrirover.data.model.SensorDataPoint
 import com.farmvision.agrirover.data.model.SensorReading
 import com.farmvision.agrirover.data.model.SensorType
+import com.farmvision.agrirover.data.model.SpeedPreset
 import com.farmvision.agrirover.data.model.SpeedUnit
 import com.farmvision.agrirover.data.model.TemperatureUnit
 import com.farmvision.agrirover.data.repository.FarmRepository
+import com.farmvision.agrirover.ui.rover.controller.JoystickVector
+import com.farmvision.agrirover.ui.rover.controller.RoverCommandPipeline
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +39,7 @@ class FarmViewModel(
     val alerts: StateFlow<List<FarmAlert>> = repository.alertsFlow
     val sensorReadings: StateFlow<Map<SensorType, SensorReading>> = repository.sensorReadingsFlow
     val hardwareCatalog = repository.hardwareCatalog
+    val farmManagement = repository.farmManagement
 
     // Reactive persisted user settings
     private val _fallbackSettings = MutableStateFlow(FarmSettings())
@@ -47,17 +53,46 @@ class FarmViewModel(
     private val _isNotificationSheetOpen = MutableStateFlow(false)
     val isNotificationSheetOpen: StateFlow<Boolean> = _isNotificationSheetOpen.asStateFlow()
 
+    // Phase 6 Rover Command Pipeline with 20 Hz rate limiter and trailing emission
+    val commandPipeline = RoverCommandPipeline(
+        commandSink = repository,
+        scope = viewModelScope
+    )
+
     // --- Rover Control Actions ---
 
     fun setEmergencyStop(engaged: Boolean) {
-        repository.setEmergencyStop(engaged)
+        commandPipeline.submitEmergencyStop(engaged)
     }
 
     fun updateRoverMovement(command: String, speedKmh: Float) {
+        commandPipeline.cancelPending()
         repository.updateRoverMovement(command, speedKmh)
     }
 
+    fun onJoystickMoved(vector: JoystickVector) {
+        commandPipeline.submitVector(vector, telemetry.value.speedPreset)
+    }
+
+    fun onJoystickMoved(x: Float, y: Float) {
+        onJoystickMoved(JoystickVector(x, y))
+    }
+
+    fun onJoystickReleased() {
+        commandPipeline.submitVector(JoystickVector.NEUTRAL, telemetry.value.speedPreset)
+    }
+
+    fun setSpeedPreset(preset: SpeedPreset) {
+        commandPipeline.setSpeedPreset(preset)
+    }
+
+    fun setDriveMode(mode: RoverDriveMode) {
+        commandPipeline.cancelPending()
+        repository.setDriveMode(mode)
+    }
+
     fun setDriveMode(mode: String) {
+        commandPipeline.cancelPending()
         repository.setDriveMode(mode)
     }
 
@@ -185,5 +220,11 @@ class FarmViewModel(
         tempUnit: TemperatureUnit = settings.value.temperatureUnit
     ): AnalyticsKpis {
         return repository.getAnalyticsKpis(range, tempUnit)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        commandPipeline.cancelPending()
+        commandPipeline.submitVector(JoystickVector.NEUTRAL)
     }
 }

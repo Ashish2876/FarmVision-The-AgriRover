@@ -1,0 +1,8 @@
+{
+  "protocolVersion": "1.0.0",
+  "cmdId": "cmd-170000-002",
+  "status": "REJECTED",
+  "reasonCode": "ERR_COMMAND_EXPIRED",
+  "latencyMs": 14,
+  "timestampMs": 1700000000350
+}

@@ -1,68 +1,74 @@
 package com.farmvision.agrirover.ui.farm
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarToday
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.WaterDrop
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionCard
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionDemoBanner
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionEmptyState
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionPrimaryButton
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusBadge
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
-import com.farmvision.agrirover.data.model.PlantItem
+import com.farmvision.agrirover.ui.farm.components.DeleteConfirmationDialog
+import com.farmvision.agrirover.ui.farm.components.DiscardChangesDialog
+import com.farmvision.agrirover.ui.farm.management.FarmManagementViewModel
+import com.farmvision.agrirover.ui.farm.management.MyFarmSubRoute
+import com.farmvision.agrirover.ui.farm.screens.AddEditFarmScreen
+import com.farmvision.agrirover.ui.farm.screens.AddEditPlantingScreen
+import com.farmvision.agrirover.ui.farm.screens.AddEditPlotScreen
+import com.farmvision.agrirover.ui.farm.screens.FarmDetailScreen
+import com.farmvision.agrirover.ui.farm.screens.FarmOverviewScreen
+import com.farmvision.agrirover.ui.farm.screens.PlantingDetailScreen
+import com.farmvision.agrirover.ui.farm.screens.PlotDetailScreen
 import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 
 /**
- * My Farm screen for managing plots, crop health indices, and irrigation schedules.
- * Backed by shared [FarmViewModel] StateFlows. Irrigating crops directly updates
- * the overall field soil moisture observed on the Home dashboard.
+ * My Farm screen managing the Farm -> Plot -> Planting hierarchy,
+ * localized sub-route navigation stack, cascading deletion confirmations,
+ * form draft state tracking, and simulation hydration controls.
  */
 @Composable
 fun MyFarmScreen(
     viewModel: FarmViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    managementViewModel: FarmManagementViewModel = remember(viewModel) {
+        FarmManagementViewModel(repository = viewModel.farmManagement)
+    }
 ) {
     val scrollState = rememberScrollState()
 
-    var selectedFilter by remember { mutableStateOf("All") }
-    val plantsList by viewModel.plants.collectAsState()
+    val currentRoute by managementViewModel.currentRoute.collectAsState()
+    val filterState by managementViewModel.filterState.collectAsState()
+    val farms by managementViewModel.farms.collectAsState()
+    val plots by managementViewModel.plots.collectAsState()
+    val plantings by managementViewModel.plantings.collectAsState()
+    val filteredPlantings by managementViewModel.filteredPlantings.collectAsState()
+    val availableGrowthStages by managementViewModel.availableGrowthStages.collectAsState()
+    val availableHealthStatuses by managementViewModel.availableHealthStatuses.collectAsState()
 
-    val filteredPlants = remember(selectedFilter, plantsList) {
-        when (selectedFilter) {
-            "Healthy" -> plantsList.filter { it.healthStatus == FarmVisionStatusType.Active }
-            "Needs Attention" -> plantsList.filter { it.healthStatus == FarmVisionStatusType.Warning }
-            else -> plantsList
-        }
+    val farmDraft by managementViewModel.farmDraft.collectAsState()
+    val plotDraft by managementViewModel.plotDraft.collectAsState()
+    val plantingDraft by managementViewModel.plantingDraft.collectAsState()
+    val isSubmitting by managementViewModel.isSubmitting.collectAsState()
+
+    val activeDeletionTarget by managementViewModel.activeDeletionTarget.collectAsState()
+    val activeDeletionReport by managementViewModel.activeDeletionReport.collectAsState()
+    val showDiscardPrompt by managementViewModel.showDiscardPrompt.collectAsState()
+
+    // Extended BackHandler: intercepts back presses when in sub-routes or dialogs
+    val canNavigateBack = currentRoute != MyFarmSubRoute.FarmListOverview ||
+        activeDeletionTarget != null ||
+        showDiscardPrompt
+
+    BackHandler(enabled = canNavigateBack) {
+        managementViewModel.navigateUp()
     }
 
     Surface(
@@ -77,192 +83,170 @@ fun MyFarmScreen(
                 .verticalScroll(scrollState)
                 .padding(horizontal = FarmVisionSpacing.large, vertical = FarmVisionSpacing.medium)
         ) {
-            // Screen Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "My Farm",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Plots • Crop Catalog • Irrigation Advice",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+            when (val route = currentRoute) {
+                is MyFarmSubRoute.FarmListOverview -> {
+                    FarmOverviewScreen(
+                        farms = farms,
+                        plots = plots,
+                        plantings = filteredPlantings,
+                        filterState = filterState,
+                        availableGrowthStages = availableGrowthStages,
+                        availableHealthStatuses = availableHealthStatuses,
+                        onSearchChange = { managementViewModel.setSearchQuery(it) },
+                        onGrowthStageFilterChange = { managementViewModel.setSelectedGrowthStageFilter(it) },
+                        onHealthStatusFilterChange = { managementViewModel.setSelectedHealthStatusFilter(it) },
+                        onSortOptionChange = { managementViewModel.setSortOption(it) },
+                        onClearFilters = { managementViewModel.clearAllFilters() },
+                        onAddFarmClick = { managementViewModel.initFarmForm() },
+                        onFarmClick = { farmId ->
+                            managementViewModel.navigateTo(MyFarmSubRoute.FarmDetail(farmId))
+                        },
+                        onPlantingClick = { farmId, plotId, plantingId ->
+                            managementViewModel.navigateTo(MyFarmSubRoute.PlantingDetail(farmId, plotId, plantingId))
+                        },
+                        onSimulateIrrigation = { plantingId ->
+                            viewModel.togglePlantIrrigation(plantingId)
+                        }
                     )
                 }
 
-                FarmVisionStatusBadge(status = FarmVisionStatusType.DemoData)
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-            FarmVisionDemoBanner(
-                message = "DEMO DATA: Crop records, soil hydration levels, and watering recommendations are simulated."
-            )
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
-
-            // Filter Tabs
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
-            ) {
-                listOf("All", "Healthy", "Needs Attention").forEach { filter ->
-                    val isSelected = selectedFilter == filter
-                    Surface(
-                        onClick = { selectedFilter = filter },
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = filter,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
-
-            if (filteredPlants.isEmpty()) {
-                FarmVisionEmptyState(
-                    title = "No Crops Found",
-                    message = "No plants match the current filter criteria.",
-                    actionText = "Show All Crops",
-                    onActionClick = { selectedFilter = "All" }
-                )
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(FarmVisionSpacing.medium)
-                ) {
-                    filteredPlants.forEach { plant ->
-                        CropDetailCard(
-                            plant = plant,
-                            onWaterClick = {
-                                viewModel.togglePlantIrrigation(plant.id)
+                is MyFarmSubRoute.FarmDetail -> {
+                    val farm = farms.find { it.id == route.farmId }
+                    if (farm != null) {
+                        val farmPlots = plots.filter { it.farmId == farm.id }
+                        FarmDetailScreen(
+                            farm = farm,
+                            plots = farmPlots,
+                            allPlantings = plantings,
+                            onBackClick = { managementViewModel.navigateUp() },
+                            onEditClick = { managementViewModel.initFarmForm(farm.id) },
+                            onDeleteClick = { managementViewModel.requestDeleteFarm(farm) },
+                            onAddPlotClick = { managementViewModel.initPlotForm(farm.id) },
+                            onPlotClick = { plotId ->
+                                managementViewModel.navigateTo(MyFarmSubRoute.PlotDetail(farm.id, plotId))
                             }
                         )
+                    } else {
+                        // Fallback if deleted
+                        managementViewModel.navigateUp()
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.huge))
+                is MyFarmSubRoute.PlotDetail -> {
+                    val farm = farms.find { it.id == route.farmId }
+                    val plot = plots.find { it.id == route.plotId }
+                    if (farm != null && plot != null) {
+                        val plotPlantings = filteredPlantings.filter { it.planting.plotId == plot.id }
+                        PlotDetailScreen(
+                            plot = plot,
+                            farm = farm,
+                            plantings = plotPlantings,
+                            onBackClick = { managementViewModel.navigateUp() },
+                            onEditClick = { managementViewModel.initPlotForm(farm.id, plot.id) },
+                            onDeleteClick = { managementViewModel.requestDeletePlot(plot, farm.name) },
+                            onAddPlantingClick = { managementViewModel.initPlantingForm(farm.id, plot.id) },
+                            onPlantingClick = { plantingId ->
+                                managementViewModel.navigateTo(MyFarmSubRoute.PlantingDetail(farm.id, plot.id, plantingId))
+                            },
+                            onSimulateIrrigation = { plantingId ->
+                                viewModel.togglePlantIrrigation(plantingId)
+                            }
+                        )
+                    } else {
+                        managementViewModel.navigateUp()
+                    }
+                }
+
+                is MyFarmSubRoute.PlantingDetail -> {
+                    val item = filteredPlantings.find { it.planting.id == route.plantingId }
+                    if (item != null) {
+                        PlantingDetailScreen(
+                            item = item,
+                            onBackClick = { managementViewModel.navigateUp() },
+                            onEditClick = {
+                                managementViewModel.initPlantingForm(route.farmId, route.plotId, route.plantingId)
+                            },
+                            onDeleteClick = {
+                                managementViewModel.requestDeletePlanting(item.planting, item.plotName)
+                            },
+                            onSimulateIrrigation = {
+                                viewModel.togglePlantIrrigation(item.planting.id)
+                            }
+                        )
+                    } else {
+                        managementViewModel.navigateUp()
+                    }
+                }
+
+                is MyFarmSubRoute.AddEditFarm -> {
+                    AddEditFarmScreen(
+                        draft = farmDraft,
+                        isSubmitting = isSubmitting,
+                        onNameChange = { managementViewModel.updateFarmDraftName(it) },
+                        onDescriptionChange = { managementViewModel.updateFarmDraftDescription(it) },
+                        onLocationChange = { managementViewModel.updateFarmDraftLocation(it) },
+                        onAreaChange = { area, unit -> managementViewModel.updateFarmDraftArea(area, unit) },
+                        onNotesChange = { managementViewModel.updateFarmDraftNotes(it) },
+                        onSubmit = { managementViewModel.submitFarmDraft() },
+                        onCancel = { managementViewModel.navigateUp() }
+                    )
+                }
+
+                is MyFarmSubRoute.AddEditPlot -> {
+                    val farm = farms.find { it.id == route.farmId }
+                    AddEditPlotScreen(
+                        draft = plotDraft,
+                        farmName = farm?.name ?: "Farm",
+                        isSubmitting = isSubmitting,
+                        onNameChange = { managementViewModel.updatePlotDraftName(it) },
+                        onDescriptionChange = { managementViewModel.updatePlotDraftDescription(it) },
+                        onAreaChange = { area, unit -> managementViewModel.updatePlotDraftArea(area, unit) },
+                        onNotesChange = { managementViewModel.updatePlotDraftNotes(it) },
+                        onSubmit = { managementViewModel.submitPlotDraft() },
+                        onCancel = { managementViewModel.navigateUp() }
+                    )
+                }
+
+                is MyFarmSubRoute.AddEditPlanting -> {
+                    AddEditPlantingScreen(
+                        draft = plantingDraft,
+                        farms = farms,
+                        plots = plots,
+                        isSubmitting = isSubmitting,
+                        onFarmChange = { managementViewModel.updatePlantingDraftFarm(it) },
+                        onPlotChange = { managementViewModel.updatePlantingDraftPlot(it) },
+                        onCropNameChange = { managementViewModel.updatePlantingDraftCropName(it) },
+                        onVarietyChange = { managementViewModel.updatePlantingDraftVariety(it) },
+                        onPlantingDateChange = { managementViewModel.updatePlantingDraftDate(it) },
+                        onGrowthStageChange = { managementViewModel.updatePlantingDraftStage(it) },
+                        onHealthStatusChange = { managementViewModel.updatePlantingDraftHealth(it) },
+                        onDaysToHarvestChange = { managementViewModel.updatePlantingDraftDaysToHarvest(it) },
+                        onNotesChange = { managementViewModel.updatePlantingDraftNotes(it) },
+                        onSubmit = { managementViewModel.submitPlantingDraft() },
+                        onCancel = { managementViewModel.navigateUp() }
+                    )
+                }
+            }
         }
     }
-}
 
-@Composable
-private fun CropDetailCard(
-    plant: PlantItem,
-    onWaterClick: () -> Unit
-) {
-    FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = plant.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = plant.variety,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = plant.plotLocation,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+    // Active Deletion Confirmation Dialog
+    val target = activeDeletionTarget
+    val report = activeDeletionReport
+    if (target != null && report != null) {
+        DeleteConfirmationDialog(
+            target = target,
+            report = report,
+            onConfirm = { managementViewModel.confirmDeletion() },
+            onDismiss = { managementViewModel.dismissDeletionDialog() }
+        )
+    }
 
-            FarmVisionStatusBadge(
-                status = plant.healthStatus,
-                customLabel = if (plant.isWatered) "IRRIGATED (${plant.healthPercent}%)" else "${plant.healthPercent}%"
-            )
-        }
-
-        Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-        // Conditions Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.WaterDrop,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Moisture: ${plant.currentMoisture}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.CalendarToday,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Harvest in ${plant.daysToHarvest}d",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-        // Recommendation
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (plant.isWatered) "Hydration logged. Rootzone absorption active." else plant.wateringRecommendation,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-        // Action Button
-        FarmVisionPrimaryButton(
-            text = if (plant.isWatered) "Irrigation Active (Tap to Reset)" else "Simulate Irrigation",
-            onClick = onWaterClick,
-            leadingIcon = if (plant.isWatered) Icons.Rounded.Check else Icons.Rounded.WaterDrop,
-            modifier = Modifier.fillMaxWidth()
+    // Unsaved Changes Discard Confirmation Dialog
+    if (showDiscardPrompt) {
+        DiscardChangesDialog(
+            onConfirmDiscard = { managementViewModel.confirmDiscardDraft() },
+            onDismiss = { managementViewModel.dismissDiscardPrompt() }
         )
     }
 }

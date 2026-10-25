@@ -71,6 +71,52 @@ data class FarmSettings(
 )
 
 /**
+ * Robotics drive modes governing rover actuation behavior.
+ * - [Manual]: Joystick and directional controls accepted.
+ * - [AutonomousWaypoint]: Simulated waypoint navigation; manual input rejected; no GPS claim.
+ * - [HoldPosition]: Rover stationary; neutral stop forced; movement rejected.
+ */
+enum class RoverDriveMode(val label: String, val allowsManualDrive: Boolean) {
+    Manual("Manual", true),
+    AutonomousWaypoint("Autonomous Waypoint", false),
+    HoldPosition("Hold Position", false);
+
+    companion object {
+        fun fromString(value: String): RoverDriveMode = when (value.trim().lowercase()) {
+            "manual" -> Manual
+            "autonomous", "autonomous waypoint", "autowaypoint" -> AutonomousWaypoint
+            "hold", "hold position", "holdposition" -> HoldPosition
+            // Backward compatibility with legacy string values "Precision", "Normal", "Turbo"
+            else -> Manual
+        }
+    }
+}
+
+/**
+ * Software speed presets defining simulated maximum speeds and duty cycle fractions.
+ * Mandatory disclaimer: "Software Preset • Uncalibrated Duty Cycle".
+ */
+enum class SpeedPreset(
+    val label: String,
+    val maxSpeedKmh: Float,
+    val dutyFraction: Float
+) {
+    Low("Low", 1.5f, 0.30f),
+    Medium("Medium", 3.5f, 0.65f),
+    High("High", 5.5f, 1.00f);
+
+    companion object {
+        const val DISCLAIMER = "Software Preset • Uncalibrated Duty Cycle"
+
+        fun fromString(value: String): SpeedPreset = when (value.trim().lowercase()) {
+            "low", "precision" -> Low
+            "high", "turbo" -> High
+            else -> Medium
+        }
+    }
+}
+
+/**
  * Real-time telemetry snapshot for the agricultural rover and field sensors.
  * Single source of truth shared across Home, Rover, and Analytics screens.
  */
@@ -84,6 +130,9 @@ data class RoverTelemetry(
     val activeCommand: String = "HOLD POSITION",
     val roverMode: String = "STANDBY",
     val driveMode: String = "Normal",
+    val driveModeEnum: RoverDriveMode = RoverDriveMode.Manual,
+    val speedPreset: SpeedPreset = SpeedPreset.Medium,
+    val joystickVector: com.farmvision.agrirover.ui.rover.controller.JoystickVector = com.farmvision.agrirover.ui.rover.controller.JoystickVector.NEUTRAL,
     val motorTemperature: Float = 34.2f,
     val soilMoisture: Float = 42.5f,
     val soilMoistureTrend: FarmVisionTrendDirection = FarmVisionTrendDirection.Rising,

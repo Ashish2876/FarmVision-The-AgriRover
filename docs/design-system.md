@@ -290,3 +290,33 @@ Previews include:
 - `PreviewCardsDark`
 - `PreviewMetricsNarrow` (`widthDp = 320`)
 - `PreviewStates` (Empty, Loading, Error, Unavailable, Demo Banner)
+
+---
+
+## 9. Hardware Center UI Specifications & Accessibility (Track H)
+
+### 9.1 Status Vocabulary & Color Semantics
+Hardware Center status indicators strictly use semantic color tokens defined in `AgriStatusColors`:
+
+| Status State | Color Token | Visual Purpose | Rule / Constraint |
+|---|---|---|---|
+| `Connected` | `statusColors.online` (`#4CAF50`) | Authenticated live link | Only shown with real verified hardware heartbeat |
+| `Connecting` | `statusColors.connecting` (`#64B5F6`) | Active handshake in progress | Shown during connection probe or initialization |
+| `Disconnected` | `statusColors.offline` (`#E57373`) | Known unreachable endpoint | Shown when probe or polling fails |
+| `Warning / Stale` | `statusColors.warning` (`#FFB74D`) | Uncalibrated, stale telemetry, or fault | Raw readings or telemetry older than freshness window |
+| `Unknown / Draft` | `MaterialTheme.colorScheme.onSurfaceVariant` | Unpolled, draft pinout, or initial state | Default initial state; never claims false discovery |
+| `Demo / Simulated` | `statusColors.demo` (`#81C784`) | Local mathematical simulation | Explicit amber/green badge; never switches silently |
+| `Unavailable` | `MaterialTheme.colorScheme.outline` | Absent hardware feature | Enforced for uninstalled sensors or encoders |
+
+### 9.2 Component Anatomy
+1. **`HardwareSummaryRow`**: Summary counter row counting electronic devices (13 total), passive items (10), with 0 health scores and full `contentDescription` reporting exact numbers.
+2. **`ControllerEndpointCard`**: Dual-controller endpoint display for Main ESP32 DevKit V1 and ESP32-CAM with independent connection chips, latency, firmware version, and `role = Role.Button`.
+3. **`HardwareComponentCard`**: Standard 23-item catalog card displaying category icon, title, model, connection status, diagnostic maturity chip, telemetry readout, and chevron navigation with minimum 48dp touch target.
+4. **`HardwareHonestyCard`**: Prominent capability boundary card highlighting what sensors or feedback lines are absent on open-loop hardware.
+5. **`HardwareCategoryFilterBar`**: Horizontal scrolling filter chip bar for rapid category filtering (`All (23)`, `Controllers (2)`, `Drivers (1)`, `Motors (4)`, `Sensors (5)`, `Tools (3)`, `Power (8)`).
+
+### 9.3 Accessibility & Font Scaling Coverage
+- **Semantics & Screen Readers**: All cards, buttons, filter chips, and dialogs provide rich `contentDescription` and declare `Role.Button` or `Role.Tab`. Section headers declare `semantics { heading() }`.
+- **Large Font Scaling (2.0x)**: Validated in `HardwareCenterLargeFontLightPreview` and `HardwareCenterLargeFontDarkPreview` (`fontScale = 2.0f`).
+- **Contrast**: Body text on backgrounds exceeds 16:1 (WCAG AAA); all status colors on dark backgrounds exceed 3.0:1 (WCAG AA graphical UI standard).
+

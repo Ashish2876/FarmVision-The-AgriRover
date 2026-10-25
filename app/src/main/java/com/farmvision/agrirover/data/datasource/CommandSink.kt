@@ -11,11 +11,20 @@ package com.farmvision.agrirover.data.datasource
  * In Phase 4, implemented by [SimulatedCommandSink] which updates local StateFlow and never transmits to physical hardware.
  */
 interface CommandSink {
-    /** Dispatches a directional piloting vector command. */
+    /** Dispatches a discrete directional piloting command (e.g. "FORWARD", "HOLD POSITION"). */
     fun updateRoverMovement(command: String, speedKmh: Float)
 
-    /** Selects the active drive mode envelope (Precision, Normal, Turbo). */
+    /** Dispatches a continuous 2D joystick velocity vector command. */
+    fun updateRoverMovement(vector: com.farmvision.agrirover.ui.rover.controller.JoystickVector, speedKmh: Float)
+
+    /** Selects the active drive mode via string key. */
     fun setDriveMode(mode: String)
+
+    /** Selects the active drive mode envelope ([com.farmvision.agrirover.data.model.RoverDriveMode]). */
+    fun setDriveMode(mode: com.farmvision.agrirover.data.model.RoverDriveMode)
+
+    /** Selects the active speed preset ([com.farmvision.agrirover.data.model.SpeedPreset]). */
+    fun setSpeedPreset(preset: com.farmvision.agrirover.data.model.SpeedPreset)
 
     /** Engages or disengages the latching emergency stop cutoff. */
     fun setEmergencyStop(engaged: Boolean)

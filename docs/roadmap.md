@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0.0 (Phase 1 Baseline)  
 **Target Platform:** Android Application (Stage A) followed by Physical Rover Hardware (Stages B–E)  
-**Current Milestone:** Phase 1 of 15 Complete (Baseline Verification & GitHub Preparation)  
+**Current Milestone:** Phase 6 of 15 Complete (Advanced Rover Controller Verified)  
 
 ---
 
@@ -112,42 +112,67 @@ The FarmVision AgriRover platform is executed in five discrete, sequential stage
 ---
 
 ### Phase 6: Rover Controller
-- **Status:** PLANNED
-- **Objective:** Implement virtual manual joystick piloting, drive modes (Manual, Autonomous Waypoint, Hold Position), and emergency stop.
+- **Status:** **COMPLETED (Phase 6 Verified)**
+- **Objective:** Implement virtual manual joystick piloting, drive modes (Manual, Autonomous Waypoint, Hold Position), speed presets (Low, Medium, High), and fail-safe emergency stop.
 - **Expected Deliverables:**
-  - Virtual 2-axis joystick composable emitting normalized $(x, y)$ velocity vectors.
-  - Speed limit selector (Low/Medium/High torque modes).
-  - Prominent emergency stop overlay with immediate motor cut confirmation.
-  - Camera viewport placeholder with telemetry HUD overlay.
+  - Virtual 2-axis joystick composable (`VirtualJoystick.kt`) emitting normalized $(x, y)$ velocity vectors with circular perimeter clamping ($r \le 1.0$), continuous radial dead zone ($0.08$), and single-pointer tracking.
+  - Coexistence with legacy `CircularDirectionalController` (D-pad with center STOP) for complete accessibility and test preservation (Option 1A).
+  - Software speed preset selector (Low 1.5 km/h, Medium 3.5 km/h, High 5.5 km/h) with uncalibrated duty cycle disclaimer.
+  - Drive Mode selector pills (Manual, Autonomous Waypoint, Hold Position) enforcing movement permission in repository layer.
+  - Command pipeline rate limiter (20 Hz, 50 ms window) with latest-wins trailing emission and immediate neutral/E-stop bypass.
+  - Industrial Red Emergency Stop latching power cutoff with deliberate re-arm.
+  - Camera viewport header (`SIMULATED CAMERA STREAM • HARDWARE DISCONNECTED`) with HUD overlay and sensor freshness.
 - **Dependencies:** Phase 5 (Dashboard & telemetry state).
-- **Acceptance Criteria:** Joystick emits throttled command packets (max 20Hz); E-stop emits immediately with highest priority.
-- **Evidence:** Automated test verifying command rate limiting and E-Stop preemption.
+- **Acceptance Criteria:** Joystick emits throttled command packets (max 20Hz); E-stop emits immediately with highest priority; E-Stop cannot be cleared by joystick drag or mode change; neutral emitted on lifecycle stop/pause.
+- **Evidence:** 84 JVM unit tests passing (22 new Phase 6 tests), 17 connected Android instrumented tests passing on emulator, and successful APK assembly.
+
 
 ---
 
 ### Phase 7: Farm and Plant Management
-- **Status:** PLANNED
-- **Objective:** Create crop and field management modules allowing operators to catalog crops, monitor plant rows, and view health indices.
+- **Status:** **COMPLETED (Phase 7 Verified)**
+- **Objective:** Create comprehensive agricultural parcel, zone, and crop management modules allowing operators to catalog farms, plots, and plantings, monitor growth stages, and track hydration.
 - **Expected Deliverables:**
-  - Field section list and crop variety cards.
-  - Plant health profile sheet with chlorophyll, moisture, and growth stage metrics.
-  - Add / Edit crop profile workflows.
+  - 3-tier agricultural domain hierarchy: `Farm`, `Plot`, and `Planting` with origin tracking (`RecordOrigin.SAMPLE` vs `USER`).
+  - Zero-dependency atomic JSON file store (`JsonFileFarmManagementRepository`, `FarmJsonSerializer`) with versioned envelope schema (`schemaVersion = 1`), serialized writes, atomic file replacement, and corruption recovery.
+  - Strict input validation (`FarmValidator`) and area conversions (`AreaConverter`) with physical sanity bounds.
+  - Nested sub-route management screens inside existing `MyFarmDestination` (`FarmOverviewScreen`, `FarmDetailScreen`, `PlotDetailScreen`, `PlantingDetailScreen`, `AddEditFarmScreen`, `AddEditPlotScreen`, `AddEditPlantingScreen`).
+  - Extended back navigation handling with dirty form draft discard confirmation (`DiscardChangesDialog`).
+  - Atomic cascading deletion confirmation dialog displaying exact dependent counts (`DeleteConfirmationDialog`).
+  - Material 3 date picker supporting nullable dates and future dates labeled "Planned" (D5).
+  - Chronological sorting with unknown dates sorting last in both ascending and descending directions.
+  - Unified repository integration projecting plantings into `plantsFlow` for real-time Home screen reflection without altering Phase 6 rover controls.
 - **Dependencies:** Phase 4 (Domain entities) & Phase 3 (Navigation).
-- **Acceptance Criteria:** CRUD operations update local state; search and filter by health condition work instantly.
-- **Evidence:** Repository unit tests and Compose screen tests.
+- **Acceptance Criteria:** Full CRUD operations across Farm, Plot, and Planting; cascading deletion with exact count confirmation; search and facet filtering work instantly; persistence survives process restart; zero new permissions or third-party dependencies.
+- **Evidence:** 107 JVM unit tests passing (23 new Phase 7 tests across domain validation, repository contract, persistence restart, and ViewModel), 10 connected Android instrumented tests passing on emulator (5 new Phase 7 tests + 5 Phase 6 tests), and successful APK assembly.
 
 ---
 
-### Phase 8: Sensor Monitoring
-- **Status:** PLANNED
-- **Objective:** Build dedicated multi-sensor telemetry visualizers for comprehensive environmental and soil monitoring.
-- **Expected Deliverables:**
-  - Environmental readings: Ambient Temperature, Relative Humidity, Solar Radiation (PAR), Barometric Pressure.
-  - Subsurface readings: Multi-depth Soil Moisture, Soil pH, NPK (Nitrogen, Phosphorus, Potassium) indicators.
-  - Sensor health & calibration status indicators.
-- **Dependencies:** Phase 4 (Telemetry models) & Phase 2 (Metric components).
-- **Acceptance Criteria:** Values dynamically color-code based on agronomical thresholds (Optimal, Warning, Critical).
-- **Evidence:** Unit tests for threshold evaluation rules.
+### Phase 8: Sensor Monitoring, Android–Firmware Integration & Release Readiness
+- **Status:** **COMPLETED (Phase 8 Verified)**
+- **Historical Roadmap Quote:**
+  > "### Phase 8: Sensor Monitoring
+  > - **Status:** PLANNED
+  > - **Objective:** Build dedicated multi-sensor telemetry visualizers for comprehensive environmental and soil monitoring.
+  > - **Expected Deliverables:**
+  >   - Environmental readings: Ambient Temperature, Relative Humidity, Solar Radiation (PAR), Barometric Pressure.
+  >   - Subsurface readings: Multi-depth Soil Moisture, Soil pH, NPK (Nitrogen, Phosphorus, Potassium) indicators.
+  >   - Sensor health & calibration status indicators.
+  > - **Dependencies:** Phase 4 (Telemetry models) & Phase 2 (Metric components).
+  > - **Acceptance Criteria:** Values dynamically color-code based on agronomical thresholds (Optimal, Warning, Critical).
+  > - **Evidence:** Unit tests for threshold evaluation rules."
+- **Execution & Integration Hardening Scope:**
+  - Expanded and executed as comprehensive Android–Firmware Integration Hardening, dual-probe moisture pipeline, unauthenticated fail-safe E-stop with authenticated reset, per-request network binding, camera stream validation, and hardware bring-up readiness.
+- **Implemented Deliverables:**
+  - **Safety & Protocol Reconciliation:** Constant-time token validation (`constantTimeEquals()`) in firmware. Reconciled canonical reasonCode `"ESTOP_RESET"` across firmware C++, `docs/hardware-protocol.md`, and Android contract tests. Fail-closed client dispatch with `RoverAuthenticationException` when bearer token is unprovisioned.
+  - **Pin Map & Hardware Documentation:** Source of truth consolidated in `firmware/esp32-main/include/config.h`. Reconciled historical documentation discrepancies in `docs/hardware-wiring-checklist.md`. Retained GPIO 5 as `DRAFT / UNVERIFIED` with candidate GPIO 33 proposed under review. Level-shifter and common ground warnings preserved. Automated contract test verifies sync between firmware header and documentation.
+  - **Android Connection Layer:** Typed `EndpointConnectionStatus` with distinct `Timeout` and `Error` states. Descriptive failure mapping for auth errors, version mismatches, and timeouts. Per-request socket network binding via `activeNetwork.openConnection(url)` in `StandardRoverHttpClient`. Cleartext traffic strictly limited to `192.168.4.1`, `192.168.4.2`, and loopback in `network_security_config.xml`.
+  - **Sensor Monitoring & Dual-Probe Pipeline:** Probe 2 saturation detection ($\le 50$ or $\ge 4050$ counts) with `SensorHealthStatus.Warning` and suspect labeling. Retained strictly raw ADC counts (no invented calibration or unsupported percentages). Non-existent sensors absent from measured telemetry.
+  - **Camera Stream Validation:** Implemented `validateCameraStream()` in Android client validating HTTP 200, Content-Type (`multipart/x-mixed-replace` or `image/jpeg`), and non-empty byte frames. Documented missing ESP32-CAM firmware contract.
+  - **Hardware First-Connection Checklist:** Created `docs/hardware-first-connection-checklist.md` with step-by-step procedures, voltage rail checks, dry-wheel test, and operator sign-off sheet.
+- **Dependencies:** Phase 6 (Rover Controller), Phase 7 (Farm & Plant Management), and Track H1–H7 hardware foundations.
+- **Acceptance Criteria:** Unauthenticated E-stop halts motion unconditionally; reset strictly requires valid bearer token; all outputs de-energized on reset; no credentials exposed in code or docs; 100% test pass rate.
+- **Evidence:** 188 JVM unit tests passing offline (`.\gradlew.bat --offline testDebugUnitTest`), 22/22 connected Android instrumented tests passing on emulator (`.\gradlew.bat --offline connectedDebugAndroidTest`), debug APK built (18,275,459 bytes).
 
 ---
 
@@ -242,6 +267,22 @@ The FarmVision AgriRover platform is executed in five discrete, sequential stage
 - **Evidence:** Final APK verification, checksum generation, and release documentation.
 
 ---
+
+### Track H: Physical Hardware Center, Live Integration & Protocol Engineering
+- **Current Milestone:** **TRACK H COMPLETED & VERIFIED (Milestones H1–H7 Complete)**
+
+| Milestone | Scope | Deliverables & Progress | Status |
+|---|---|---|---|
+| **H1** | UI Foundation & Catalog Presentation | Hardware Center entry, 23 components cataloged, 5 status axes, truthful unconfigured states, zero false claims. | **COMPLETED** |
+| **H2** | 7 Status Axes, Settings & Prober | SharedPreferences persistence, ConnectionTester probe engine, dynamic counting rules (13 electronic items), Demo/Live mode toggle. | **COMPLETED** |
+| **H3** | Protocol Spec & Pure Code Models | Formal protocol specification v1.0.0 (`docs/hardware-protocol.md`), hardware wiring checklist (`docs/hardware-wiring-checklist.md`), pure Kotlin models (`RoverProtocolModels.kt`), validator (`ProtocolValidator.kt`), message parser (`ProtocolMessageParser.kt`), 9 contract fixtures, 23 unit tests. | **COMPLETED** |
+| **H4** | Android Networking Layer | Scoped cleartext config (`network_security_config.xml`), Wi-Fi SoftAP `bindProcessToNetwork` (`RoverNetworkBinder`), `StandardRoverHttpClient` & `RoverProtocolClient`, live telemetry polling, token redaction, 15 unit tests. | **COMPLETED** |
+| **H5** | ESP32 Firmware (F0 Sensors Only) | PlatformIO/Arduino ESP32 firmware in `firmware/esp32-main/`, FreeRTOS dual-core tasks, Wi-Fi SoftAP (`192.168.4.1`), REST endpoints (`/capabilities`, `/telemetry`, `/command`, `/emergency-stop`, `/status`), actuators strictly disabled in F0 (`ERR_ACTUATOR_DISABLED`), `firmware/README.md`, cross-platform contract tests. Flashing gated by `AUTHORIZE FLASH`. | **COMPLETED** |
+| **H6** | Actuator Verification & Stage F1 | Physical wiring verification guide (`docs/hardware-verified.md`), TB6612FNG differential drive (20 kHz PWM, 5% deadband, slew rate limiter), 3 kinematic servos, 10s pump safety cutoff, 250ms deadman failsafe, E-Stop latching core, 7 unit tests. Physical actuation gated by `WIRING CONFIRMED`. | **COMPLETED** |
+| **H7** | Final Polish, Accessibility & Handover | Accessibility semantics (`heading()`, `Role.Button`, filter content descriptions), WCAG AAA/AA contrast compliance, 2.0x font scaling previews, comprehensive handover manual (`docs/hardware-handover.md`), full regression suite (180 tests passing). | **COMPLETED** |
+
+---
+
 
 ## 3. Subsequent Hardware & Integration Stages (Stages B through E)
 

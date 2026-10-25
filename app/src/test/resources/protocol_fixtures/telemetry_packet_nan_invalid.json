@@ -1,0 +1,19 @@
+{
+  "protocolVersion": "1.0.0",
+  "deviceId": "agrirover-main-esp32",
+  "firmwareVersion": "v1.0.0-f0-sensors",
+  "sequenceNumber": 1043,
+  "uptimeMs": 349000,
+  "readings": {
+    "hw-sensor-soil-moisture-probes": {
+      "value": NaN,
+      "rawValue": 2150.0,
+      "unit": "%",
+      "isValid": false,
+      "quality": "CORRUPTED"
+    }
+  },
+  "diagnostics": {
+    "freeHeapBytes": "142880"
+  }
+}

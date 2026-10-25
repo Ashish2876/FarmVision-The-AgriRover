@@ -1,0 +1,57 @@
+{
+  "protocolVersion": "1.0.0",
+  "deviceId": "agrirover-main-esp32",
+  "firmwareVersion": "v1.0.0-f0-sensors",
+  "firmwareStage": "F0",
+  "controllerTarget": "Esp32DevKitV1",
+  "supportedSensors": [
+    {
+      "id": "hw-sensor-soil-moisture-probes",
+      "type": "SoilMoistureCapacitive",
+      "unit": "%",
+      "requiresCalibration": true,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-dht22",
+      "type": "AtmosphericDht22",
+      "unit": "C_RH",
+      "requiresCalibration": false,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-soil-ph",
+      "type": "AnalogSoilPh",
+      "unit": "pH",
+      "requiresCalibration": true,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-ultrasonic",
+      "type": "DistanceHcSr04",
+      "unit": "cm",
+      "requiresCalibration": false,
+      "isAvailable": true
+    }
+  ],
+  "supportedActuators": [
+    {
+      "id": "hw-motors-bo-geared",
+      "type": "DifferentialDriveMotors",
+      "hasPhysicalFeedback": false,
+      "isEnabled": false
+    },
+    {
+      "id": "hw-irrigation-pump",
+      "type": "SubmersiblePumpRelay",
+      "hasPhysicalFeedback": false,
+      "isEnabled": false,
+      "maxDurationMs": 10000
+    }
+  ],
+  "features": [
+    "TELEMETRY_STREAM",
+    "EMERGENCY_STOP"
+  ],
+  "isEmergencyStopSupported": true
+}

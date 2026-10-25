@@ -1,0 +1,14 @@
+{
+  "protocolVersion": "1.0.0",
+  "cmdId": "cmd-170000-001",
+  "sequence": 501,
+  "commandType": "DRIVE_DIFFERENTIAL",
+  "ttlMs": 250,
+  "createdTimestampMs": 1700000000000,
+  "priority": "NORMAL",
+  "parameters": {
+    "throttle": 0.65,
+    "steering": 0.0,
+    "driveMode": "Standard"
+  }
+}

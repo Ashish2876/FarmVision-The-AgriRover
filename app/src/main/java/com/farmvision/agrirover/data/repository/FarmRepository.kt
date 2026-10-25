@@ -19,6 +19,19 @@ import com.farmvision.agrirover.data.model.SoilMoistureDualProbeMapping
 import com.farmvision.agrirover.data.model.TemperatureUnit
 import com.farmvision.agrirover.data.time.SystemTimeProvider
 import com.farmvision.agrirover.data.time.TimeProvider
+import com.farmvision.agrirover.data.model.RoverDriveMode
+import com.farmvision.agrirover.data.model.SpeedPreset
+import com.farmvision.agrirover.ui.rover.controller.JoystickMath
+import com.farmvision.agrirover.ui.rover.controller.JoystickVector
+import com.farmvision.agrirover.domain.model.farm.PlantHealthStatus
+import com.farmvision.agrirover.domain.repository.FarmManagementRepository
+import com.farmvision.agrirover.data.repository.InMemoryFarmManagementRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,11 +40,15 @@ import kotlinx.coroutines.flow.update
 /**
  * Unified Agricultural Repository interface.
  * Implements [TelemetrySource] and [CommandSink] boundaries, providing a single source of truth
- * for rover telemetry, multi-sensor streams, crop health, alerts, and hardware inventory.
+ * for rover telemetry, multi-sensor streams, crop health, alerts, hardware inventory,
+ * and the Farm -> Plot -> Planting hierarchy.
  */
 interface FarmRepository : TelemetrySource, CommandSink {
     /** Hardware component catalog and device profiles source. */
     val hardwareCatalog: HardwareCatalogSource
+
+    /** Agricultural farm, plot, and planting single source of truth. */
+    val farmManagement: FarmManagementRepository
 
     /** Reactive stream of crop/plant profiles. */
     val plantsFlow: StateFlow<List<PlantItem>>
@@ -58,7 +75,8 @@ interface FarmRepository : TelemetrySource, CommandSink {
  */
 class MockFarmRepository(
     val timeProvider: TimeProvider = SystemTimeProvider(),
-    override val hardwareCatalog: HardwareCatalogSource = StaticHardwareCatalogSource()
+    override val hardwareCatalog: HardwareCatalogSource = StaticHardwareCatalogSource(),
+    override val farmManagement: FarmManagementRepository = InMemoryFarmManagementRepository(timeProvider = timeProvider)
 ) : FarmRepository {
 
     private val initialPlants = listOf(
@@ -237,8 +255,115 @@ class MockFarmRepository(
     private val _sensorReadingsFlow = MutableStateFlow(initialSensorReadings)
     override val sensorReadingsFlow: StateFlow<Map<SensorType, SensorReading>> = _sensorReadingsFlow.asStateFlow()
 
+    data class CropSimulationState(
+        val currentMoisture: Float,
+        val isWatered: Boolean = false,
+        val wateringRecommendation: String = "Optimal rootzone saturation"
+    )
+
+    private val initialSimulations: Map<String, CropSimulationState> = mapOf(
+        "crop-01" to CropSimulationState(44.2f, false, "Hydration optimal • Next scan at 08:00 AM"),
+        "crop-02" to CropSimulationState(38.6f, false, "Soil drying moderately • Water 400ml tomorrow"),
+        "crop-03" to CropSimulationState(31.4f, false, "Low moisture threshold reached • Irrigate within 4 hours"),
+        "crop-04" to CropSimulationState(46.8f, false, "Optimal rootzone saturation")
+    )
+    private val _simulationsFlow = MutableStateFlow(initialSimulations)
+
     private val _plantsFlow = MutableStateFlow(initialPlants)
     override val plantsFlow: StateFlow<List<PlantItem>> = _plantsFlow.asStateFlow()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        syncPlants()
+        scope.launch {
+            combine(
+                farmManagement.plantingsFlow,
+                farmManagement.plotsFlow
+            ) { _, _ ->
+                syncPlants()
+            }.collect()
+        }
+    }
+
+    private fun buildPlantItems(): List<PlantItem> {
+        val plots = farmManagement.getPlots().associateBy { it.id }
+        val plantings = farmManagement.getPlantings()
+        val simMap = _simulationsFlow.value
+
+        return plantings.map { p ->
+            val plotName = plots[p.plotId]?.name ?: "Sector A • Plot 2"
+            val sim = simMap[p.id] ?: initialSimulations[p.id] ?: CropSimulationState(42.0f, false, "Hydration optimal")
+            val healthPercent = if (sim.isWatered) {
+                when (p.id) {
+                    "crop-01" -> 98
+                    "crop-02" -> 98
+                    "crop-03" -> 82
+                    "crop-04" -> 98
+                    else -> 94
+                }
+            } else {
+                when (p.id) {
+                    "crop-01" -> 94
+                    "crop-02" -> 88
+                    "crop-03" -> 72
+                    "crop-04" -> 91
+                    else -> if (sim.currentMoisture >= 35f) 90 else 70
+                }
+            }
+            val healthStatus = if (sim.currentMoisture >= 35f && p.userHealthStatus != PlantHealthStatus.NeedsAttention && p.userHealthStatus != PlantHealthStatus.Critical) {
+                FarmVisionStatusType.Active
+            } else {
+                FarmVisionStatusType.Warning
+            }
+
+            PlantItem(
+                id = p.id,
+                name = p.cropName,
+                variety = p.variety ?: "",
+                plotLocation = plotName,
+                growthStage = p.growthStage.label,
+                healthPercent = healthPercent,
+                healthStatus = healthStatus,
+                currentMoisture = sim.currentMoisture,
+                optimalMoistureMin = 35f,
+                optimalMoistureMax = 55f,
+                wateringRecommendation = if (sim.isWatered) "Hydration logged. Rootzone absorption active." else sim.wateringRecommendation,
+                daysToHarvest = p.daysToHarvest ?: 30,
+                isWatered = sim.isWatered
+            )
+        }
+    }
+
+    private fun syncPlants() {
+        val items = buildPlantItems()
+        _plantsFlow.value = items
+
+        val avgMoisture = if (items.isNotEmpty()) {
+            items.map { it.currentMoisture }.average().toFloat()
+        } else {
+            40.0f
+        }
+        val formattedMoisture = String.format(java.util.Locale.US, "%.1f", avgMoisture).toFloat()
+        val now = timeProvider.nowEpochMillis()
+
+        val updatedMoistureReading = SensorReading.createValidated(
+            sensorId = "unified-rootzone-moisture",
+            sensorType = SensorType.SoilMoisture,
+            value = formattedMoisture,
+            timestampEpochMillis = now,
+            nowEpochMillis = now
+        )
+
+        _sensorReadingsFlow.update { it + (SensorType.SoilMoisture to updatedMoistureReading) }
+        _telemetryFlow.update {
+            it.copy(
+                soilMoisture = formattedMoisture,
+                sensorReadings = _sensorReadingsFlow.value,
+                lastUpdated = timeProvider.formatRelativeTime(now)
+            )
+        }
+    }
 
     private val _alertsFlow = MutableStateFlow(initialAlerts)
     override val alertsFlow: StateFlow<List<FarmAlert>> = _alertsFlow.asStateFlow()
@@ -250,6 +375,8 @@ class MockFarmRepository(
 
     override fun updateRoverMovement(command: String, speedKmh: Float) {
         if (_telemetryFlow.value.isEmergencyCutoff) return
+        val currentMode = _telemetryFlow.value.driveModeEnum
+        if (currentMode != RoverDriveMode.Manual && speedKmh > 0f) return
         val now = timeProvider.nowEpochMillis()
         _telemetryFlow.update { current ->
             val mission = when (command) {
@@ -273,20 +400,99 @@ class MockFarmRepository(
         }
     }
 
+    override fun updateRoverMovement(vector: JoystickVector, speedKmh: Float) {
+        if (_telemetryFlow.value.isEmergencyCutoff) return
+        val currentMode = _telemetryFlow.value.driveModeEnum
+        if (currentMode != RoverDriveMode.Manual && !vector.isNeutral) return
+
+        val sanitized = JoystickMath.sanitize(vector)
+        val now = timeProvider.nowEpochMillis()
+        _telemetryFlow.update { current ->
+            if (sanitized.isNeutral) {
+                current.copy(
+                    activeCommand = "HOLD POSITION",
+                    speedKmh = 0.0f,
+                    roverMode = "STANDBY",
+                    activeMission = "Standby • Ready for Dispatch",
+                    joystickVector = JoystickVector.NEUTRAL,
+                    lastUpdated = timeProvider.formatRelativeTime(now)
+                )
+            } else {
+                val dirLabel = when {
+                    sanitized.y > 0.35f && kotlin.math.abs(sanitized.x) <= 0.35f -> "FORWARD"
+                    sanitized.y < -0.35f && kotlin.math.abs(sanitized.x) <= 0.35f -> "REVERSE"
+                    sanitized.x < -0.35f && kotlin.math.abs(sanitized.y) <= 0.35f -> "TURN LEFT"
+                    sanitized.x > 0.35f && kotlin.math.abs(sanitized.y) <= 0.35f -> "TURN RIGHT"
+                    else -> String.format(java.util.Locale.US, "VECTOR (%.2f, %.2f)", sanitized.x, sanitized.y)
+                }
+                current.copy(
+                    activeCommand = dirLabel,
+                    speedKmh = speedKmh,
+                    roverMode = "MANUAL_DRIVE",
+                    activeMission = "Manual Navigation (Vector)",
+                    joystickVector = sanitized,
+                    lastUpdated = timeProvider.formatRelativeTime(now)
+                )
+            }
+        }
+    }
+
     override fun setDriveMode(mode: String) {
         val now = timeProvider.nowEpochMillis()
         _telemetryFlow.update { current ->
-            val updatedSpeed = if (current.speedKmh > 0f && !current.isEmergencyCutoff) {
+            val driveModeEnum = when (mode.trim().lowercase()) {
+                "autonomous", "autonomous waypoint", "autowaypoint" -> RoverDriveMode.AutonomousWaypoint
+                "hold", "hold position", "holdposition" -> RoverDriveMode.HoldPosition
+                else -> RoverDriveMode.Manual
+            }
+            val speedPreset = when (mode.trim().lowercase()) {
+                "precision", "low" -> SpeedPreset.Low
+                "turbo", "high" -> SpeedPreset.High
+                else -> SpeedPreset.Medium
+            }
+            val updatedSpeed = if (driveModeEnum == RoverDriveMode.Manual && current.speedKmh > 0f && !current.isEmergencyCutoff) {
                 when (mode) {
                     "Precision" -> 1.5f
                     "Turbo" -> 5.5f
-                    else -> 3.5f
+                    "Normal" -> 3.5f
+                    else -> speedPreset.maxSpeedKmh
                 }
             } else {
                 0.0f
             }
+            val updatedCmd = if (driveModeEnum == RoverDriveMode.HoldPosition) "HOLD POSITION" else current.activeCommand
+            val updatedMode = if (driveModeEnum == RoverDriveMode.Manual && updatedSpeed > 0f) "MANUAL_DRIVE" else "STANDBY"
+            val updatedVector = if (driveModeEnum == RoverDriveMode.Manual && updatedSpeed > 0f) current.joystickVector else JoystickVector.NEUTRAL
+
             current.copy(
                 driveMode = mode,
+                driveModeEnum = driveModeEnum,
+                speedPreset = speedPreset,
+                speedKmh = updatedSpeed,
+                activeCommand = updatedCmd,
+                roverMode = updatedMode,
+                joystickVector = updatedVector,
+                lastUpdated = timeProvider.formatRelativeTime(now)
+            )
+        }
+    }
+
+    override fun setDriveMode(mode: RoverDriveMode) {
+        setDriveMode(mode.label)
+    }
+
+    override fun setSpeedPreset(preset: SpeedPreset) {
+        val now = timeProvider.nowEpochMillis()
+        _telemetryFlow.update { current ->
+            // Changing a preset never starts movement from stationary
+            val updatedSpeed = if (current.speedKmh > 0f && !current.isEmergencyCutoff && current.driveModeEnum == RoverDriveMode.Manual) {
+                val scale = if (!current.joystickVector.isNeutral) current.joystickVector.magnitude else 1.0f
+                preset.maxSpeedKmh * scale
+            } else {
+                0.0f
+            }
+            current.copy(
+                speedPreset = preset,
                 speedKmh = updatedSpeed,
                 lastUpdated = timeProvider.formatRelativeTime(now)
             )
@@ -304,6 +510,7 @@ class MockFarmRepository(
                     speedKmh = 0f,
                     roverMode = "E-STOPPED",
                     activeMission = "Mission Halted (E-Stop Engaged)",
+                    joystickVector = JoystickVector.NEUTRAL,
                     lastUpdated = relTime
                 )
             } else {
@@ -313,6 +520,7 @@ class MockFarmRepository(
                     speedKmh = 0f,
                     roverMode = "STANDBY",
                     activeMission = "Standby • Ready for Dispatch",
+                    joystickVector = JoystickVector.NEUTRAL,
                     lastUpdated = relTime
                 )
             }
@@ -320,45 +528,15 @@ class MockFarmRepository(
     }
 
     override fun togglePlantIrrigation(plantId: String) {
-        _plantsFlow.update { plants ->
-            plants.map { plant ->
-                if (plant.id == plantId) {
-                    val willWater = !plant.isWatered
-                    val newMoisture = if (willWater) (plant.currentMoisture + 8.5f).coerceAtMost(60f) else (plant.currentMoisture - 8.5f).coerceAtLeast(20f)
-                    val newHealth = if (willWater) (plant.healthPercent + 10).coerceAtMost(98) else plant.healthPercent
-                    plant.copy(
-                        isWatered = willWater,
-                        currentMoisture = newMoisture,
-                        healthPercent = newHealth,
-                        healthStatus = if (newMoisture >= plant.optimalMoistureMin) FarmVisionStatusType.Active else FarmVisionStatusType.Warning
-                    )
-                } else {
-                    plant
-                }
-            }
+        _simulationsFlow.update { map ->
+            val current = map[plantId] ?: initialSimulations[plantId] ?: CropSimulationState(42.0f, false, "Optimal rootzone saturation")
+            val willWater = !current.isWatered
+            val newMoisture = if (willWater) (current.currentMoisture + 8.5f).coerceAtMost(60f) else (current.currentMoisture - 8.5f).coerceAtLeast(20f)
+            val newRec = if (willWater) "Hydration logged. Rootzone absorption active." else "Hydration optimal • Next scan at 08:00 AM"
+            map + (plantId to current.copy(currentMoisture = newMoisture, isWatered = willWater, wateringRecommendation = newRec))
         }
 
-        // Recalculate rootzone moisture for shared telemetry
-        val avgMoisture = _plantsFlow.value.map { it.currentMoisture }.average().toFloat()
-        val formattedMoisture = String.format(java.util.Locale.US, "%.1f", avgMoisture).toFloat()
-        val now = timeProvider.nowEpochMillis()
-
-        val updatedMoistureReading = SensorReading.createValidated(
-            sensorId = "unified-rootzone-moisture",
-            sensorType = SensorType.SoilMoisture,
-            value = formattedMoisture,
-            timestampEpochMillis = now,
-            nowEpochMillis = now
-        )
-
-        _sensorReadingsFlow.update { it + (SensorType.SoilMoisture to updatedMoistureReading) }
-        _telemetryFlow.update {
-            it.copy(
-                soilMoisture = formattedMoisture,
-                sensorReadings = _sensorReadingsFlow.value,
-                lastUpdated = timeProvider.formatRelativeTime(now)
-            )
-        }
+        syncPlants()
     }
 
     override fun clearAllAlerts() {

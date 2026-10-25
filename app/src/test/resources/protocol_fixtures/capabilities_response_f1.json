@@ -1,0 +1,66 @@
+{
+  "protocolVersion": "1.0.0",
+  "deviceId": "agrirover-main-esp32",
+  "firmwareVersion": "v1.0.0-f1-actuators",
+  "firmwareStage": "F1",
+  "controllerTarget": "Esp32DevKitV1",
+  "supportedSensors": [
+    {
+      "id": "hw-sensor-soil-moisture-probes",
+      "type": "SoilMoistureCapacitive",
+      "unit": "%",
+      "requiresCalibration": true,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-dht22",
+      "type": "AtmosphericDht22",
+      "unit": "C_RH",
+      "requiresCalibration": false,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-soil-ph",
+      "type": "AnalogSoilPh",
+      "unit": "pH",
+      "requiresCalibration": true,
+      "isAvailable": true
+    },
+    {
+      "id": "hw-sensor-ultrasonic",
+      "type": "DistanceHcSr04",
+      "unit": "cm",
+      "requiresCalibration": false,
+      "isAvailable": true
+    }
+  ],
+  "supportedActuators": [
+    {
+      "id": "hw-motors-bo-geared",
+      "type": "DifferentialDriveMotors",
+      "hasPhysicalFeedback": false,
+      "isEnabled": true
+    },
+    {
+      "id": "hw-irrigation-pump",
+      "type": "SubmersiblePumpRelay",
+      "hasPhysicalFeedback": false,
+      "isEnabled": true,
+      "maxDurationMs": 10000
+    },
+    {
+      "id": "hw-servo-camera-tilt",
+      "type": "PositionalServo",
+      "hasPhysicalFeedback": false,
+      "isEnabled": true
+    }
+  ],
+  "features": [
+    "TELEMETRY_STREAM",
+    "DRIVE_CONTROL",
+    "IRRIGATION_CONTROL",
+    "SERVO_CONTROL",
+    "EMERGENCY_STOP"
+  ],
+  "isEmergencyStopSupported": true
+}

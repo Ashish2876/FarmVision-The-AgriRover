@@ -1,5 +1,6 @@
 package com.farmvision.agrirover.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,9 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -43,7 +48,8 @@ import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 @Composable
 fun SettingsScreen(
     viewModel: FarmViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToHardwareCenter: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val settings by viewModel.settings.collectAsState()
@@ -88,6 +94,46 @@ fun SettingsScreen(
             FarmVisionDemoBanner(
                 message = "PREFERENCES: Settings adjustments operate locally with SharedPreferences persistence. Physical rover connection parameters will activate in Stage D."
             )
+
+            // Hardware Center Entry Card
+            FarmVisionSectionHeader(
+                title = "Hardware Center",
+                description = "23-Component catalog & microcontroller status"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            FarmVisionCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onNavigateToHardwareCenter?.invoke() }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Hardware Center & Device Inventory",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Inspect 23 catalog components, dual ESP32 controller status, and pinouts",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Open Hardware Center",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
 

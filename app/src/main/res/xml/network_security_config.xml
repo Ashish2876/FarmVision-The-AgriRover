@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Strictly scoped cleartext HTTP permissions.
+      Cleartext is permitted ONLY for the local ESP32 rover SoftAP subnet and developer loopback.
+      App-wide cleartext is strictly prohibited by base-config cleartextTrafficPermitted="false".
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Default Main ESP32 DevKit V1 controller -->
+        <domain includeSubdomains="true">192.168.4.1</domain>
+        <!-- Default ESP32-CAM vision controller -->
+        <domain includeSubdomains="true">192.168.4.2</domain>
+        <!-- Entire /24 subnet for dynamic rover SoftAP DHCP clients -->
+        <domain includeSubdomains="true">192.168.4.0</domain>
+        <!-- Android Emulator host loopback -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- Local device loopback -->
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">localhost</domain>
+    </domain-config>
+
+    <!-- Reject all cleartext traffic across all other external internet domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

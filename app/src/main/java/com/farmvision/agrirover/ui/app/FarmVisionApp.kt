@@ -35,6 +35,7 @@ import com.farmvision.agrirover.data.local.SettingsPreferencesManager
 import com.farmvision.agrirover.data.repository.MockFarmRepository
 import com.farmvision.agrirover.ui.analytics.AnalyticsScreen
 import com.farmvision.agrirover.ui.farm.MyFarmScreen
+import com.farmvision.agrirover.ui.hardware.screens.HardwareCenterScreen
 import com.farmvision.agrirover.ui.home.HomeScreen
 import com.farmvision.agrirover.ui.rover.RoverScreen
 import com.farmvision.agrirover.ui.settings.SettingsScreen
@@ -102,59 +103,67 @@ fun FarmVisionApp(
     }
 
     var currentDestination by rememberSaveable { mutableStateOf(FarmVisionDestination.Home) }
+    var isHardwareCenterOpen by rememberSaveable { mutableStateOf(false) }
     val isNotificationSheetOpen by farmViewModel.isNotificationSheetOpen.collectAsState()
 
     // --- Back-Navigation Policy ---
-    // Priority 1: If a modal (notification sheet) is open, Back closes it first and stays on the current screen.
+    // Priority 1: If a modal (notification sheet) is open, Back closes it first.
     BackHandler(enabled = isNotificationSheetOpen) {
         farmViewModel.setNotificationSheetOpen(false)
     }
 
-    // Priority 2: On a non-Home top-level tab (with no modal open), Back returns directly to Home.
-    BackHandler(enabled = currentDestination != FarmVisionDestination.Home && !isNotificationSheetOpen) {
+    // Priority 2: If Hardware Center is open, Back closes it and returns to previous screen.
+    BackHandler(enabled = isHardwareCenterOpen && !isNotificationSheetOpen) {
+        isHardwareCenterOpen = false
+    }
+
+    // Priority 3: On a non-Home top-level tab (with no modal or Hardware Center open), Back returns to Home.
+    BackHandler(enabled = currentDestination != FarmVisionDestination.Home && !isNotificationSheetOpen && !isHardwareCenterOpen) {
         currentDestination = FarmVisionDestination.Home
     }
 
-    // Priority 3: On Home with nothing open, both BackHandlers are disabled; default Android Back proceeds (leaves app).
+    // Priority 4: On Home with nothing open, default Android Back proceeds (leaves app).
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                FarmVisionDestination.entries.forEach { destination ->
-                    val isSelected = currentDestination == destination
-                    NavigationBarItem(
-                        modifier = Modifier.testTag(destination.testTag),
-                        selected = isSelected,
-                        onClick = {
-                            if (currentDestination != destination) {
-                                currentDestination = destination
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label
+            if (!isHardwareCenterOpen) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    FarmVisionDestination.entries.forEach { destination ->
+                        val isSelected = currentDestination == destination
+                        NavigationBarItem(
+                            modifier = Modifier.testTag(destination.testTag),
+                            selected = isSelected,
+                            onClick = {
+                                if (currentDestination != destination) {
+                                    currentDestination = destination
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = destination.icon,
+                                    contentDescription = destination.label
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = destination.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        },
-                        label = {
-                            Text(
-                                text = destination.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    )
+                    }
                 }
             }
         }
@@ -164,28 +173,37 @@ fun FarmVisionApp(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            Crossfade(
-                targetState = currentDestination,
-                label = "DestinationCrossfade"
-            ) { target ->
-                when (target) {
-                    FarmVisionDestination.Home -> HomeScreen(
-                        viewModel = farmViewModel,
-                        onNavigateToRover = { currentDestination = FarmVisionDestination.Rover },
-                        onNavigateToFarm = { currentDestination = FarmVisionDestination.MyFarm }
-                    )
-                    FarmVisionDestination.Rover -> RoverScreen(
-                        viewModel = farmViewModel
-                    )
-                    FarmVisionDestination.MyFarm -> MyFarmScreen(
-                        viewModel = farmViewModel
-                    )
-                    FarmVisionDestination.Analytics -> AnalyticsScreen(
-                        viewModel = farmViewModel
-                    )
-                    FarmVisionDestination.Settings -> SettingsScreen(
-                        viewModel = farmViewModel
-                    )
+            if (isHardwareCenterOpen) {
+                HardwareCenterScreen(
+                    onNavigateBack = { isHardwareCenterOpen = false }
+                )
+            } else {
+                Crossfade(
+                    targetState = currentDestination,
+                    label = "DestinationCrossfade"
+                ) { target ->
+                    when (target) {
+                        FarmVisionDestination.Home -> HomeScreen(
+                            viewModel = farmViewModel,
+                            onNavigateToRover = { currentDestination = FarmVisionDestination.Rover },
+                            onNavigateToFarm = { currentDestination = FarmVisionDestination.MyFarm },
+                            onNavigateToHardwareCenter = { isHardwareCenterOpen = true }
+                        )
+                        FarmVisionDestination.Rover -> RoverScreen(
+                            viewModel = farmViewModel,
+                            onNavigateToHardwareCenter = { isHardwareCenterOpen = true }
+                        )
+                        FarmVisionDestination.MyFarm -> MyFarmScreen(
+                            viewModel = farmViewModel
+                        )
+                        FarmVisionDestination.Analytics -> AnalyticsScreen(
+                            viewModel = farmViewModel
+                        )
+                        FarmVisionDestination.Settings -> SettingsScreen(
+                            viewModel = farmViewModel,
+                            onNavigateToHardwareCenter = { isHardwareCenterOpen = true }
+                        )
+                    }
                 }
             }
         }

@@ -1,0 +1,49 @@
+{
+  "protocolVersion": "1.0.0",
+  "deviceId": "agrirover-main-esp32",
+  "firmwareVersion": "v1.0.0-f0-sensors",
+  "sequenceNumber": 1042,
+  "uptimeMs": 348500,
+  "readings": {
+    "hw-sensor-soil-moisture-probes": {
+      "value": 42.5,
+      "rawValue": 2150.0,
+      "unit": "%",
+      "isValid": true,
+      "quality": "OK"
+    },
+    "hw-sensor-soil-moisture-probe-2": {
+      "value": 2200.0,
+      "rawValue": 2200.0,
+      "unit": "counts",
+      "isValid": true,
+      "quality": "RAW_UNCALIBRATED"
+    },
+    "hw-sensor-dht22": {
+      "value": 26.8,
+      "rawValue": 26.8,
+      "unit": "°C",
+      "isValid": true,
+      "quality": "OK"
+    },
+    "hw-sensor-soil-ph": {
+      "value": 6.8,
+      "rawValue": 1820.0,
+      "unit": "pH",
+      "isValid": true,
+      "quality": "OK"
+    },
+    "hw-sensor-ultrasonic": {
+      "value": 45.0,
+      "rawValue": 45.0,
+      "unit": "cm",
+      "isValid": true,
+      "quality": "OK"
+    }
+  },
+  "diagnostics": {
+    "freeHeapBytes": "142880",
+    "wifiRssiDbm": "-54",
+    "loopFrequencyHz": "50"
+  }
+}

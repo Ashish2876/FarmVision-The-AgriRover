@@ -1,0 +1,12 @@
+{
+  "protocolVersion": "1.0.0",
+  "cmdId": "estop-170000-999",
+  "sequence": 502,
+  "commandType": "EMERGENCY_STOP",
+  "ttlMs": 5000,
+  "createdTimestampMs": 1700000000010,
+  "priority": "CRITICAL",
+  "parameters": {
+    "reason": "OPERATOR_TRIGGERED"
+  }
+}

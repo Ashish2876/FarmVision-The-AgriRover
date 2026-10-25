@@ -1,0 +1,7 @@
+{
+  "protocolVersion": "1.0.0",
+  "errorCode": "ERR_COMMAND_EXPIRED",
+  "message": "Command TTL exceeded (expired by 84ms). Actuation dropped.",
+  "recoverable": true,
+  "timestampMs": 1700000000090
+}

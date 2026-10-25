@@ -22,9 +22,11 @@ The application features a 5-destination bottom navigation shell:
    - Crop health summary across monitored plots.
    - Recent environmental threshold alerts and quick actions.
 2. **Rover Control Center**:
-   - Directional piloting pad (Forward, Reverse, Turn Left, Turn Right, Hold Position/Stop).
-   - Dynamic ground speed and motor temperature readout.
-   - Drive mode selector (Manual Piloting, Autonomous Waypoint Scan, Return to Dock).
+   - Virtual 2-axis piloting joystick with continuous radial dead zone and physics spring return.
+   - Circular directional D-pad with central STOP for complete accessibility and dual-mode piloting.
+   - Tactile vector telemetry and differential steering kinematics HUD (Left/Right duty cycle).
+   - Speed preset selector (Low, Medium, High) with uncalibrated duty cycle disclaimer.
+   - Drive mode selector (Manual Piloting, Autonomous Waypoint Scan, Hold Position).
    - Dedicated **Emergency Stop (E-Stop)** safety core with immediate power cutoff and motor re-arming.
 3. **My Farm**:
    - Crop catalog with variety details, plot locations, and growth stages.
@@ -55,7 +57,8 @@ The application features a 5-destination bottom navigation shell:
 | **JDK Toolchain** | OpenJDK / Microsoft JDK | Java 17 (`17.0.18+8`) |
 | **Android SDKs** | Compile SDK / Target SDK / Min SDK | Compile `35` • Target `35` • Min `26` (Android 8.0+) |
 | **Architecture** | Unidirectional Data Flow (UDF) & Clean Architecture | Layered Presentation, Domain, and Data |
-| **Testing** | JUnit 4, AndroidX Test, Compose UI Test | JUnit `4.13.2` • 23 Passing Unit Tests |
+| **Testing** | JUnit 4, AndroidX Test, Compose UI Test | JUnit `4.13.2` • 188 Passing JVM Unit Tests (20 suites) • 22 Connected Android Tests |
+| **Microcontroller Firmware** | ESP32 DevKit V1 FreeRTOS C++ | PlatformIO • Dual-Core RTOS • Rest API v1.0.0 |
 
 ---
 
@@ -117,12 +120,18 @@ FarmVision/
 │       │   └── res/                       # Vectors, launcher mipmaps, values
 │       ├── debug/                         # Debug-only showcase activity and launcher
 │       ├── release/                       # Release stubs (showcase excluded)
-│       ├── test/                          # 36 JVM unit tests (100% pass across 6 suites)
-│       └── androidTest/                   # Instrumented Compose UI tests (Navigation & BottomSheet)
+│       ├── test/                          # 180 JVM unit tests (100% pass across 19 suites)
+│       └── androidTest/                   # Instrumented Compose UI tests (Navigation, Controller & BottomSheet)
+├── firmware/
+│   └── esp32-main/                        # PlatformIO C++ FreeRTOS robotics firmware (Dual-core, SoftAP, REST API)
 └── docs/
-    ├── architecture.md
-    ├── design-system.md
-    └── roadmap.md
+    ├── architecture.md                    # Core architecture, layers, network security, and safety core
+    ├── design-system.md                   # Tokens, WCAG contrast, component anatomy, accessibility
+    ├── hardware-handover.md               # Complete hardware integration manual & operational guide
+    ├── hardware-verified.md               # Bench testing invariants, electrical checklist & sign-off sheet
+    ├── hardware-protocol.md               # Formal REST protocol specification v1.0.0 & schemas
+    ├── hardware-wiring-checklist.md       # Pinout maps, candidate GPIOs, level shifter requirements
+    └── roadmap.md                         # Master lifecycle, Track H completion, and Stages B–E schedule
 ```
 
 ---
@@ -132,7 +141,7 @@ FarmVision/
 Execute standard Gradle commands from the project root:
 
 ```bash
-# Run all local JVM unit tests (36 tests across 6 suites)
+# Run all local JVM unit tests (180 tests across 19 suites)
 ./gradlew testDebugUnitTest
 
 # Assemble the Debug APK
@@ -150,6 +159,10 @@ The compiled debug APK is generated at:
 
 ## 6. Documentation Index
 
-- [docs/architecture.md](docs/architecture.md): Presentation, Domain, and Data layer separation, hardware safety, and watchdog specifications.
-- [docs/design-system.md](docs/design-system.md): Color tokens, measured WCAG contrast ratios, typography scale, spacing grid, and component API inventory.
-- [docs/roadmap.md](docs/roadmap.md): Complete lifecycle schedule covering Android application phases and physical rover stages (B–E).
+- [docs/architecture.md](docs/architecture.md): Presentation, Domain, Data, network security, and hardware safety core.
+- [docs/design-system.md](docs/design-system.md): Color tokens, measured WCAG contrast ratios, typography scale, spacing grid, and Hardware Center component anatomy.
+- [docs/hardware-handover.md](docs/hardware-handover.md): Complete engineering handover guide, pinout tables, bench tests, and protocol v1.0.0 reference.
+- [docs/hardware-verified.md](docs/hardware-verified.md): Physical verification invariants (wheels off ground) and electrical sign-off checklist.
+- [docs/hardware-protocol.md](docs/hardware-protocol.md): Protocol schema, message contracts, error codes, and validation rules.
+- [docs/hardware-wiring-checklist.md](docs/hardware-wiring-checklist.md): Wiring checklists, level-shifter requirements, and pin definitions.
+- [docs/roadmap.md](docs/roadmap.md): Complete lifecycle schedule covering Android application phases, Track H completion, and physical rover stages (B–E).
