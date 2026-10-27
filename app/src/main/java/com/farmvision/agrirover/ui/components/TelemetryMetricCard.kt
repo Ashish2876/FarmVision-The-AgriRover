@@ -37,6 +37,7 @@ import com.farmvision.agrirover.ui.theme.BorderSubtleDark
 import com.farmvision.agrirover.ui.theme.DarkSurfaceHigh
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
 import com.farmvision.agrirover.ui.theme.FreshLeaf
+import com.farmvision.agrirover.ui.theme.LocalAgriStatusColors
 import com.farmvision.agrirover.ui.theme.MintAccent
 import com.farmvision.agrirover.ui.theme.StatusAlert
 import com.farmvision.agrirover.ui.theme.StatusOnline
@@ -67,12 +68,13 @@ fun TelemetryMetricCard(
     progressFraction: Float? = null,
     onClick: (() -> Unit)? = null
 ) {
+    val statusColors = LocalAgriStatusColors.current
     val statusColor = when (status) {
-        AgriStatusType.Nominal -> FreshLeaf
-        AgriStatusType.Warning -> StatusWarning
-        AgriStatusType.Alert -> StatusAlert
-        AgriStatusType.Info -> MintAccent
-        AgriStatusType.Standby -> TextMutedDark
+        AgriStatusType.Nominal -> statusColors.online
+        AgriStatusType.Warning -> statusColors.warning
+        AgriStatusType.Alert -> statusColors.error
+        AgriStatusType.Info -> statusColors.info
+        AgriStatusType.Standby -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     GlassmorphicCard(
@@ -98,12 +100,12 @@ fun TelemetryMetricCard(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(statusColor.copy(alpha = 0.15f))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = statusColor,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -113,7 +115,7 @@ fun TelemetryMetricCard(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                         fontSize = 13.sp,
-                        color = TextMutedDark,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -152,7 +154,7 @@ fun TelemetryMetricCard(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
-                    color = TextMutedDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -168,7 +170,7 @@ fun TelemetryMetricCard(
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = statusColor,
-                    trackColor = DarkSurfaceHigh
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }
@@ -180,10 +182,11 @@ private fun TrendIndicator(
     trend: MetricTrend,
     label: String
 ) {
+    val statusColors = LocalAgriStatusColors.current
     val (icon, color) = when (trend) {
-        MetricTrend.Rising -> Icons.Rounded.ArrowUpward to FreshLeaf
-        MetricTrend.Falling -> Icons.Rounded.ArrowDownward to StatusWarning
-        MetricTrend.Stable -> Icons.Rounded.Remove to TextMutedDark
+        MetricTrend.Rising -> Icons.Rounded.ArrowUpward to statusColors.online
+        MetricTrend.Falling -> Icons.Rounded.ArrowDownward to statusColors.warning
+        MetricTrend.Stable -> Icons.Rounded.Remove to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Row(

@@ -4,50 +4,78 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
-// FarmVision AgriRover — Core Brand Design Tokens (Phase 1 & Phase 2 Baseline)
+// FarmVision AgriRover — Core Brand Design Tokens (Parrot Green & White Redesign)
 // ============================================================================
 
-val DeepForest = Color(0xFF123B2A)
-val PrimaryGreen = Color(0xFF218C5B)
-val LightPrimaryGreen = Color(0xFF176840) // Tuned for >= 4.5:1 normal text contrast on WarmOffWhite
-val FreshLeaf = Color(0xFF62C985)
-val MintAccent = Color(0xFFA8E6C1)
-val WarmOffWhite = Color(0xFFF5F8F3)
+val ParrotGreen = Color(0xFF78E000)      // Primary action fills, hero header, selected indicator
+val ParrotGreenDeep = Color(0xFF3CB300)  // Pressed/hover fills, strong accents
+val DarkGreen = Color(0xFF287A20)        // Green text/icons on white, focus rings, borders on selection
+val LightLime = Color(0xFFD4F8A8)        // Selected surfaces, icon containers
+val PaleGreen = Color(0xFFEFFBE8)        // Secondary background, selected card surface
 
-// Dark Theme Foundations
-val DarkBackground = Color(0xFF0B1410)
-val DarkSurface = Color(0xFF14221B)
-val DarkSurfaceVariant = Color(0xFF1C2E25)
-val DarkSurfaceContainerHigh = Color(0xFF243B30)
+val PureWhite = Color(0xFFFFFFFF)        // Content cards, sheets, dialogs, nav bar
+val SoftWhite = Color(0xFFF7FBF4)        // App background (outdoor anti-glare canvas)
+val TextPrimary = Color(0xFF1B2E1B)      // Headings and high-contrast body (8.57:1 on ParrotGreen, 14.45:1 on White)
+val TextSecondary = Color(0xFF5C6B5C)    // Supporting text (5.66:1 on White, 5.40:1 on SoftWhite)
+val BorderSubtle = Color(0xFFDDE8D5)     // Thin borders and dividers
+
+// Aliases for backwards compatibility with earlier Phase code
+val FreshLeaf = ParrotGreen
+val DeepForest = DarkGreen
+val PrimaryGreen = DarkGreen
+val LightPrimaryGreen = DarkGreen
+val MintAccent = LightLime
+val WarmOffWhite = SoftWhite
+val PrimaryTextLight = TextPrimary
+val TextMutedLight = TextSecondary
+val LightBackground = SoftWhite
+val LightSurface = PureWhite
+val LightSurfaceVariant = PaleGreen
+val LightSurfaceContainerHigh = Color(0xFFE2F0DB)
+val BorderSubtleLight = BorderSubtle
+val BorderAccentLight = DarkGreen
+
+// Coordinated Deep-Green Dark Theme Foundations (Default D5)
+val DarkBackground = Color(0xFF0D1710)
+val DarkSurface = Color(0xFF132218)
+val DarkSurfaceVariant = Color(0xFF1A2E20)
+val DarkSurfaceContainerHigh = Color(0xFF223C2B)
 val DarkSurfaceHigh = DarkSurfaceContainerHigh
 
-// Light Theme Foundations
-val LightBackground = WarmOffWhite
-val LightSurface = Color(0xFFFFFFFF)
-val LightSurfaceVariant = Color(0xFFE5EDE7)
-val LightSurfaceContainerHigh = Color(0xFFD8E4DC)
+val DarkThemeText = Color(0xFFF2F8F1)
+val TextMutedDark = Color(0xFF9EB5A2)
+val TextSubtleDark = Color(0xFF728A76)
 
-// Text Tokens
-val PrimaryTextLight = Color(0xFF17231C)
-val TextMutedLight = Color(0xFF43584C) // Enhanced to 5.2:1 contrast against WarmOffWhite
-val DarkThemeText = Color(0xFFE8F1EB)
-val TextMutedDark = Color(0xFF9EB4A7)  // 6.8:1 contrast against DarkBackground
-val TextSubtleDark = Color(0xFF70877A)
-
-// Outline and Borders
-val BorderSubtleDark = Color(0xFF243B30)
-val BorderAccentDark = Color(0xFF325444)
-val BorderHighlight = Color(0xFF4E8569)
-val BorderSubtleLight = Color(0xFFCBD7CF)
-val BorderAccentLight = Color(0xFFA3B8AA)
+val BorderSubtleDark = Color(0xFF243B2A)
+val BorderAccentDark = Color(0xFF33553C)
+val BorderHighlight = Color(0xFF4C7D59)
 
 // Base Semantic Status Tokens
 val StatusOnline = Color(0xFF2ECC71)
 val StatusWarning = Color(0xFFF39C12)
-val StatusAlert = Color(0xFFE74C3C)
+val StatusAlert = Color(0xFFE53935)
 val StatusInfo = Color(0xFF3498DB)
 val StatusStandby = Color(0xFF95A5A6)
 val StatusDemo = Color(0xFFC39BD3)
+
+// Chart Series Tokens
+val ChartSeriesPrimary = DarkGreen
+val ChartSeriesSecondary = Color(0xFFD97706)
+val ChartSeriesTertiary = Color(0xFF2563EB)
+
+data class ChartSeriesColors(
+    val series1: Color,
+    val series2: Color,
+    val series3: Color
+)
+
+val DefaultChartSeriesColors = ChartSeriesColors(
+    series1 = ChartSeriesPrimary,
+    series2 = ChartSeriesSecondary,
+    series3 = ChartSeriesTertiary
+)
+
+val LocalChartSeriesColors = staticCompositionLocalOf { DefaultChartSeriesColors }
 
 /**
  * Complete semantic status palette for agriculture telemetry and rover state.
@@ -68,31 +96,31 @@ data class AgriStatusColors(
 )
 
 val DarkAgriStatusColors = AgriStatusColors(
-    success = Color(0xFF2ECC71),
-    warning = Color(0xFFF39C12),
-    error = Color(0xFFE74C3C),
-    info = Color(0xFF3498DB),
-    online = Color(0xFF2ECC71),
-    offline = Color(0xFFE74C3C),
-    connecting = Color(0xFF5DADE2),
-    active = FreshLeaf,
-    idle = Color(0xFF9EB4A7),
+    success = Color(0xFF34D399),
+    warning = Color(0xFFFBBF24),
+    error = Color(0xFFF87171),
+    info = Color(0xFF60A5FA),
+    online = Color(0xFF34D399),
+    offline = Color(0xFFF87171),
+    connecting = Color(0xFF60A5FA),
+    active = ParrotGreen,
+    idle = Color(0xFF9EB5A2),
     demo = Color(0xFFC39BD3),
     onStatus = DarkBackground
 )
 
 val LightAgriStatusColors = AgriStatusColors(
-    success = Color(0xFF1B7A43),
-    warning = Color(0xFF945200), // Adjusted for >= 4.5:1 on LightBackground
-    error = Color(0xFFBA2518),   // Adjusted for >= 4.5:1 on LightBackground
-    info = Color(0xFF1B5E8A),    // Adjusted for >= 4.5:1 on LightBackground
+    success = Color(0xFF1B7A43), // 5.37:1 on White, 5.02:1 on PaleGreen
+    warning = Color(0xFF945200), // 6.06:1 on White, 5.66:1 on PaleGreen
+    error = Color(0xFFBA2518),   // 6.24:1 on White, 5.83:1 on PaleGreen
+    info = Color(0xFF1B5E8A),    // 6.97:1 on White, 6.51:1 on PaleGreen
     online = Color(0xFF1B7A43),
     offline = Color(0xFFBA2518),
     connecting = Color(0xFF1B5E8A),
-    active = PrimaryGreen,
-    idle = Color(0xFF4E6356),
+    active = DarkGreen,
+    idle = TextSecondary,
     demo = Color(0xFF6C3483),
-    onStatus = WarmOffWhite
+    onStatus = PureWhite
 )
 
-val LocalAgriStatusColors = staticCompositionLocalOf { DarkAgriStatusColors }
+val LocalAgriStatusColors = staticCompositionLocalOf { LightAgriStatusColors }

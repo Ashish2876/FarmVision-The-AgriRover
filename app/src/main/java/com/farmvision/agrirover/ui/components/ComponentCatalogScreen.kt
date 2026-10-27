@@ -43,14 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.farmvision.agrirover.ui.theme.DarkBackground
-import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
+import com.farmvision.agrirover.ui.theme.DarkGreen
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
-import com.farmvision.agrirover.ui.theme.FreshLeaf
-import com.farmvision.agrirover.ui.theme.MintAccent
-import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreen
 import com.farmvision.agrirover.ui.theme.StatusAlert
-import com.farmvision.agrirover.ui.theme.TextMutedDark
 
 /**
  * Phase 2 Interactive Component Catalog Showcase.
@@ -72,11 +68,7 @@ fun ComponentCatalogScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(DarkBackground, Color(0xFF0F1E17), DarkBackground)
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -98,7 +90,7 @@ fun ComponentCatalogScreen(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.2.sp,
-                        color = FreshLeaf
+                        color = DarkGreen
                     )
                     Text(
                         text = "Phase 2 Reusable Library",
@@ -171,7 +163,7 @@ fun ComponentCatalogScreen(
                     Text(
                         text = "Adjust Simulated Velocity (Interactive Slider)",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextMutedDark
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Slider(
@@ -182,9 +174,9 @@ fun ComponentCatalogScreen(
                         },
                         valueRange = 0f..6f,
                         colors = SliderDefaults.colors(
-                            thumbColor = FreshLeaf,
-                            activeTrackColor = PrimaryGreen,
-                            inactiveTrackColor = DarkSurfaceVariant
+                            thumbColor = DarkGreen,
+                            activeTrackColor = ParrotGreen,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
@@ -238,7 +230,7 @@ fun ComponentCatalogScreen(
             SectionHeader(title = "5. Emergency Stop (E-Stop) Safety Core")
             GlassmorphicCard(
                 modifier = Modifier.fillMaxWidth(),
-                borderColor = if (isEmergencyCutoff) StatusAlert else DarkSurfaceVariant
+                borderColor = if (isEmergencyCutoff) StatusAlert else MaterialTheme.colorScheme.outlineVariant
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -249,7 +241,7 @@ fun ComponentCatalogScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        color = if (isEmergencyCutoff) StatusAlert else MintAccent
+                        color = if (isEmergencyCutoff) StatusAlert else DarkGreen
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -322,7 +314,7 @@ private fun SectionHeader(title: String) {
         Box(
             modifier = Modifier
                 .size(width = 4.dp, height = 16.dp)
-                .background(FreshLeaf, RoundedCornerShape(2.dp))
+                .background(ParrotGreen, RoundedCornerShape(2.dp))
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(

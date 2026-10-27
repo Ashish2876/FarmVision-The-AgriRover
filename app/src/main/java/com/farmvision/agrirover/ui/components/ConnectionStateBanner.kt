@@ -72,11 +72,11 @@ fun ConnectionStateBanner(
     modifier: Modifier = Modifier,
     onReconnectClick: (() -> Unit)? = null
 ) {
-    val statusColor = if (isConnected) quality.color else StatusAlert
+    val statusColor = if (isConnected) quality.color else MaterialTheme.colorScheme.error
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = DarkSurface,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
     ) {
@@ -127,7 +127,7 @@ fun ConnectionStateBanner(
                         text = if (isConnected) "${quality.label} • ${signalDbm} dBm" else "Telemetry link lost",
                         style = MaterialTheme.typography.bodySmall,
                         fontSize = 11.sp,
-                        color = TextMutedDark
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -140,14 +140,14 @@ fun ConnectionStateBanner(
                             text = "${latencyMs} ms",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (latencyMs < 50) FreshLeaf else StatusWarning
+                            color = if (latencyMs < 50) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                         )
                         Text(
                             text = "PING",
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Medium,
-                            color = TextMutedDark
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 } else if (onReconnectClick != null) {
@@ -155,14 +155,14 @@ fun ConnectionStateBanner(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSurfaceVariant)
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
                             .clickable(onClick = onReconnectClick)
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Refresh,
                             contentDescription = "Reconnect",
-                            tint = MintAccent,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -170,7 +170,7 @@ fun ConnectionStateBanner(
                             text = "RECONNECT",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MintAccent
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }

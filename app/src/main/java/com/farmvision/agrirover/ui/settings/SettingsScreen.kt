@@ -82,7 +82,7 @@ fun SettingsScreen(
                     Text(
                         text = "Connection • Preferences • System Info",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
@@ -129,7 +129,7 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
                         contentDescription = "Open Hardware Center",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
                     )
                 }

@@ -39,15 +39,22 @@ import androidx.compose.ui.unit.sp
 import com.farmvision.agrirover.ui.theme.BorderAccentDark
 import com.farmvision.agrirover.ui.theme.BorderSubtleDark
 import com.farmvision.agrirover.ui.theme.DarkBackground
+import com.farmvision.agrirover.ui.theme.DarkGreen
 import com.farmvision.agrirover.ui.theme.DarkSurfaceHigh
 import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
 import com.farmvision.agrirover.ui.theme.DeepForest
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
 import com.farmvision.agrirover.ui.theme.FreshLeaf
+import com.farmvision.agrirover.ui.theme.LightLime
 import com.farmvision.agrirover.ui.theme.MintAccent
+import com.farmvision.agrirover.ui.theme.PaleGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreenDeep
 import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.PureWhite
 import com.farmvision.agrirover.ui.theme.StatusAlert
 import com.farmvision.agrirover.ui.theme.TextMutedDark
+import com.farmvision.agrirover.ui.theme.TextPrimary
 
 enum class TactileButtonVariant {
     Primary,
@@ -55,6 +62,12 @@ enum class TactileButtonVariant {
     Tonal,
     Danger
 }
+
+private data class TactileStyle(
+    val brush: Brush,
+    val contentColor: Color,
+    val border: BorderStroke? = null
+)
 
 /**
  * High-contrast tactile action button engineered for outdoor field conditions and glove-friendly touch targets.
@@ -82,26 +95,26 @@ fun TactileButton(
 
     val shape = RoundedCornerShape(14.dp)
 
-    val (backgroundBrush, contentColor, borderStroke) = when (variant) {
-        TactileButtonVariant.Primary -> Triple(
-            Brush.horizontalGradient(listOf(PrimaryGreen, FreshLeaf)),
-            DarkBackground,
-            null
+    val style = when (variant) {
+        TactileButtonVariant.Primary -> TactileStyle(
+            brush = Brush.horizontalGradient(listOf(ParrotGreen, ParrotGreenDeep)),
+            contentColor = TextPrimary,
+            border = null
         )
-        TactileButtonVariant.Secondary -> Triple(
-            Brush.horizontalGradient(listOf(DarkSurfaceVariant, DarkSurfaceHigh)),
-            MintAccent,
-            BorderStroke(1.dp, BorderAccentDark)
+        TactileButtonVariant.Secondary -> TactileStyle(
+            brush = Brush.horizontalGradient(listOf(LightLime, LightLime)),
+            contentColor = DarkGreen,
+            border = BorderStroke(1.dp, DarkGreen.copy(alpha = 0.45f))
         )
-        TactileButtonVariant.Tonal -> Triple(
-            Brush.horizontalGradient(listOf(DeepForest, Color(0xFF1B4D36))),
-            MintAccent,
-            BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.4f))
+        TactileButtonVariant.Tonal -> TactileStyle(
+            brush = Brush.horizontalGradient(listOf(PaleGreen, PaleGreen)),
+            contentColor = DarkGreen,
+            border = BorderStroke(1.dp, DarkGreen.copy(alpha = 0.25f))
         )
-        TactileButtonVariant.Danger -> Triple(
-            Brush.horizontalGradient(listOf(StatusAlert, Color(0xFFC0392B))),
-            Color.White,
-            null
+        TactileButtonVariant.Danger -> TactileStyle(
+            brush = Brush.horizontalGradient(listOf(StatusAlert, Color(0xFFBA2518))),
+            contentColor = PureWhite,
+            border = null
         )
     }
 
@@ -111,21 +124,14 @@ fun TactileButton(
         modifier = modifier
             .scale(scale)
             .defaultMinSize(minHeight = 50.dp)
-            .clip(shape)
-            .then(
-                if (borderStroke != null && enabled) {
-                    Modifier.background(borderStroke.brush, shape)
-                } else {
-                    Modifier
-                }
-            ),
+            .clip(shape),
         shape = shape,
         color = Color.Transparent,
-        border = if (enabled) borderStroke else BorderStroke(1.dp, BorderSubtleDark)
+        border = if (enabled) style.border else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Box(
             modifier = Modifier
-                .background(backgroundBrush, shape)
+                .background(style.brush, shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -138,7 +144,7 @@ fun TactileButton(
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
-                    color = contentColor,
+                    color = style.contentColor,
                     strokeWidth = 2.dp
                 )
             } else {
@@ -150,7 +156,7 @@ fun TactileButton(
                         Icon(
                             imageVector = leadingIcon,
                             contentDescription = null,
-                            tint = contentColor.copy(alpha = activeAlpha),
+                            tint = style.contentColor.copy(alpha = activeAlpha),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -161,7 +167,7 @@ fun TactileButton(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp,
-                        color = contentColor.copy(alpha = activeAlpha)
+                        color = style.contentColor.copy(alpha = activeAlpha)
                     )
 
                     if (trailingIcon != null) {
@@ -169,7 +175,7 @@ fun TactileButton(
                         Icon(
                             imageVector = trailingIcon,
                             contentDescription = null,
-                            tint = contentColor.copy(alpha = activeAlpha),
+                            tint = style.contentColor.copy(alpha = activeAlpha),
                             modifier = Modifier.size(18.dp)
                         )
                     }

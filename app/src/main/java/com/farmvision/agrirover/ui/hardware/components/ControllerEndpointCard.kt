@@ -39,8 +39,6 @@ import androidx.compose.ui.unit.dp
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
 import com.farmvision.agrirover.data.model.hardware.ControllerTarget
 import com.farmvision.agrirover.ui.hardware.model.EndpointConnectionStatus
-import com.farmvision.agrirover.ui.theme.DarkSurface
-import com.farmvision.agrirover.ui.theme.FreshLeaf
 import com.farmvision.agrirover.ui.theme.LocalAgriStatusColors
 
 /**
@@ -120,14 +118,14 @@ fun ControllerEndpointCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(FarmVisionSpacing.iconSizeMedium)
                             )
                         }

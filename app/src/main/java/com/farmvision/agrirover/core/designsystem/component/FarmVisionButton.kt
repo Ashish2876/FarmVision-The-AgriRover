@@ -114,19 +114,19 @@ fun FarmVisionOutlinedButton(
             .semantics { role = Role.Button },
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(FarmVisionSpacing.borderThin, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(FarmVisionSpacing.borderThin, MaterialTheme.colorScheme.secondary),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = MaterialTheme.colorScheme.secondary
         ),
         contentPadding = PaddingValues(horizontal = FarmVisionSpacing.large, vertical = FarmVisionSpacing.medium)
     ) {
-        ButtonContent(text = text, leadingIcon = leadingIcon, isLoading = isLoading, contentColor = MaterialTheme.colorScheme.primary)
+        ButtonContent(text = text, leadingIcon = leadingIcon, isLoading = isLoading, contentColor = MaterialTheme.colorScheme.secondary)
     }
 }
 
 /**
  * FarmVision Text Button.
- * Low-emphasis inline trigger for auxiliary actions.
+ * Low-emphasis inline trigger for auxiliary actions with accessible Dark Green contrast.
  */
 @Composable
 fun FarmVisionTextButton(
@@ -144,7 +144,7 @@ fun FarmVisionTextButton(
         enabled = enabled,
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.textButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = MaterialTheme.colorScheme.secondary
         ),
         contentPadding = PaddingValues(horizontal = FarmVisionSpacing.medium, vertical = FarmVisionSpacing.small)
     ) {
@@ -153,16 +153,48 @@ fun FarmVisionTextButton(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    modifier = Modifier.size(FarmVisionSpacing.iconSizeMedium)
+                    modifier = Modifier.size(FarmVisionSpacing.iconSizeMedium),
+                    tint = MaterialTheme.colorScheme.secondary
                 )
                 Spacer(modifier = Modifier.width(FarmVisionSpacing.small))
             }
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.secondary
             )
         }
+    }
+}
+
+/**
+ * FarmVision Destructive Button.
+ * High-priority emergency or deletion action trigger with Safety Red styling.
+ */
+@Composable
+fun FarmVisionDestructiveButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .defaultMinSize(minWidth = FarmVisionSpacing.minTouchTarget, minHeight = FarmVisionSpacing.minTouchTarget)
+            .semantics { role = Role.Button },
+        enabled = enabled && !isLoading,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.error,
+            contentColor = MaterialTheme.colorScheme.onError
+        ),
+        contentPadding = PaddingValues(horizontal = FarmVisionSpacing.large, vertical = FarmVisionSpacing.medium)
+    ) {
+        ButtonContent(text = text, leadingIcon = leadingIcon, isLoading = isLoading, contentColor = MaterialTheme.colorScheme.onError)
     }
 }
 

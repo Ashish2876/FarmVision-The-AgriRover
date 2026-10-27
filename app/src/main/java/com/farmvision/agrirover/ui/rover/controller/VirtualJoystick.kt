@@ -37,10 +37,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.farmvision.agrirover.data.model.RoverDriveMode
-import com.farmvision.agrirover.ui.theme.DarkSurface
-import com.farmvision.agrirover.ui.theme.DarkSurfaceContainerHigh
-import com.farmvision.agrirover.ui.theme.FreshLeaf
-import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.BorderSubtle
+import com.farmvision.agrirover.ui.theme.DarkGreen
+import com.farmvision.agrirover.ui.theme.LightLime
+import com.farmvision.agrirover.ui.theme.ParrotGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreenDeep
+import com.farmvision.agrirover.ui.theme.TextPrimary
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -98,16 +100,18 @@ fun VirtualJoystick(
         contentAlignment = Alignment.Center
     ) {
         // Base Bounding Circle Canvas
+        val outlineColor = MaterialTheme.colorScheme.outlineVariant
         Canvas(
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
                 .background(
-                    if (isEnabled) DarkSurface else DarkSurfaceContainerHigh.copy(alpha = 0.5f)
+                    if (isEnabled) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
                 )
                 .border(
                     width = 2.dp,
-                    color = if (isEnabled && isDragging) FreshLeaf else MaterialTheme.colorScheme.outline,
+                    color = if (isEnabled && isDragging) ParrotGreen else outlineColor,
                     shape = CircleShape
                 )
         ) {
@@ -115,11 +119,11 @@ fun VirtualJoystick(
             val outerRadius = this.size.width / 2f
 
             // Concentric Range Rings (25%, 50%, 75%, 100%)
-            val ringAlphas = listOf(0.10f, 0.15f, 0.20f)
+            val ringAlphas = listOf(0.12f, 0.18f, 0.24f)
             ringAlphas.forEachIndexed { index, alpha ->
                 val r = outerRadius * (0.25f * (index + 1))
                 drawCircle(
-                    color = Color.White.copy(alpha = alpha),
+                    color = outlineColor.copy(alpha = alpha),
                     radius = r,
                     center = center,
                     style = Stroke(width = 1f)
@@ -128,14 +132,14 @@ fun VirtualJoystick(
 
             // Radial Dead Zone Marker Ring (0.08 threshold)
             drawCircle(
-                color = if (isEnabled) FreshLeaf.copy(alpha = 0.25f) else Color.Gray.copy(alpha = 0.2f),
+                color = if (isEnabled) DarkGreen.copy(alpha = 0.35f) else Color.Gray.copy(alpha = 0.2f),
                 radius = outerRadius * JoystickVector.DEFAULT_DEAD_ZONE,
                 center = center,
                 style = Stroke(width = 1.5f)
             )
 
             // Crosshair Guide Lines
-            val crosshairColor = if (isEnabled) Color.White.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.1f)
+            val crosshairColor = outlineColor.copy(alpha = 0.35f)
             drawLine(
                 color = crosshairColor,
                 start = Offset(center.x, 0f),
@@ -254,18 +258,18 @@ fun VirtualJoystick(
                 .background(
                     brush = if (isEnabled) {
                         if (isDragging) {
-                            Brush.radialGradient(listOf(FreshLeaf, PrimaryGreen))
+                            Brush.radialGradient(listOf(ParrotGreen, ParrotGreenDeep))
                         } else {
-                            Brush.radialGradient(listOf(Color(0xFF2C5E43), Color(0xFF1B3D2B)))
+                            Brush.radialGradient(listOf(LightLime, BorderSubtle))
                         }
                     } else {
-                        Brush.radialGradient(listOf(DarkSurfaceContainerHigh, Color(0xFF1E2621)))
+                        Brush.radialGradient(listOf(Color.LightGray, Color.Gray))
                     }
                 )
                 .border(
                     width = 2.dp,
                     color = if (isEnabled) {
-                        if (isDragging) Color.White else FreshLeaf
+                        if (isDragging) DarkGreen else DarkGreen.copy(alpha = 0.5f)
                     } else {
                         Color.Gray.copy(alpha = 0.5f)
                     },
@@ -278,11 +282,11 @@ fun VirtualJoystick(
             Canvas(modifier = Modifier.size(16.dp)) {
                 drawCircle(
                     color = if (isEnabled) {
-                        if (isDragging) Color.White else FreshLeaf.copy(alpha = 0.8f)
+                        if (isDragging) TextPrimary else DarkGreen
                     } else {
-                        Color.Gray.copy(alpha = 0.4f)
+                        Color.Gray
                     },
-                    radius = 5.dp.toPx()
+                    radius = 4.dp.toPx()
                 )
             }
         }

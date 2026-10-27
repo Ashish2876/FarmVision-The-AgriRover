@@ -41,9 +41,10 @@ import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
 fun FarmVisionCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(16.dp),
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    borderColor: Color = MaterialTheme.colorScheme.outline,
-    borderWidth: Dp = FarmVisionSpacing.borderThin,
+    isSelected: Boolean = false,
+    containerColor: Color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+    borderColor: Color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+    borderWidth: Dp = if (isSelected) 1.5.dp else FarmVisionSpacing.borderThin,
     contentPadding: PaddingValues = PaddingValues(FarmVisionSpacing.large),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit

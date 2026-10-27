@@ -45,10 +45,16 @@ enum class SpeedUnit(val symbol: String, val label: String) {
 /**
  * Time ranges for historical telemetry analytics.
  */
-enum class AnalyticsTimeRange(val label: String) {
-    Hours24("24 Hours"),
-    Days7("7 Days"),
-    Days30("30 Days")
+enum class AnalyticsTimeRange(val label: String, val durationMillis: Long) {
+    Hours24("24 Hours", 24L * 60 * 60 * 1000),
+    Days7("7 Days", 7L * 24 * 60 * 60 * 1000),
+    Days30("30 Days", 30L * 24 * 60 * 60 * 1000);
+
+    /**
+     * Calculates rolling window [nowEpochMillis - durationMillis, nowEpochMillis], both ends inclusive.
+     */
+    fun calculateWindow(nowEpochMillis: Long): AnalyticsTimeWindow =
+        AnalyticsTimeWindow(this, nowEpochMillis - durationMillis, nowEpochMillis)
 }
 
 /**

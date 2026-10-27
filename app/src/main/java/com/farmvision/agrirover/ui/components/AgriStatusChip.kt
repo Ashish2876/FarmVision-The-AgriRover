@@ -86,7 +86,7 @@ fun AgriStatusChip(
 
     Surface(
         modifier = modifier,
-        color = DarkSurfaceVariant,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(50),
         border = BorderStroke(1.dp, type.color.copy(alpha = 0.45f))
     ) {

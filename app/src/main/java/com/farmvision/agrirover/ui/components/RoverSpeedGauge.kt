@@ -27,11 +27,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.farmvision.agrirover.ui.theme.DarkGreen
 import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
 import com.farmvision.agrirover.ui.theme.DeepForest
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
 import com.farmvision.agrirover.ui.theme.FreshLeaf
 import com.farmvision.agrirover.ui.theme.MintAccent
+import com.farmvision.agrirover.ui.theme.ParrotGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreenDeep
 import com.farmvision.agrirover.ui.theme.StatusWarning
 import com.farmvision.agrirover.ui.theme.TextMutedDark
 import kotlin.math.cos
@@ -66,6 +69,17 @@ fun RoverSpeedGauge(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
+        val trackColor = MaterialTheme.colorScheme.surfaceVariant
+        val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+        val gaugeBrush = Brush.sweepGradient(
+            colors = listOf(
+                DarkGreen,
+                ParrotGreen,
+                ParrotGreenDeep,
+                MaterialTheme.colorScheme.error
+            )
+        )
+
         Canvas(modifier = Modifier.size(size)) {
             val strokeWidth = 14.dp.toPx()
             val arcSize = size.toPx() - strokeWidth
@@ -73,7 +87,7 @@ fun RoverSpeedGauge(
 
             // 1. Background Arc Track
             drawArc(
-                color = DarkSurfaceVariant,
+                color = trackColor,
                 startAngle = startAngle,
                 sweepAngle = totalSweepAngle,
                 useCenter = false,
@@ -85,14 +99,7 @@ fun RoverSpeedGauge(
             // 2. Active Gradient Arc
             if (currentSweepAngle > 0f) {
                 drawArc(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(
-                            DeepForest,
-                            FreshLeaf,
-                            MintAccent,
-                            StatusWarning
-                        )
-                    ),
+                    brush = gaugeBrush,
                     startAngle = startAngle,
                     sweepAngle = currentSweepAngle,
                     useCenter = false,
@@ -119,9 +126,9 @@ fun RoverSpeedGauge(
                 val endY = center.y + ((tickRadius - tickLength) * sin(angleRad)).toFloat()
 
                 val tickColor = if (tickFraction <= animatedRatio) {
-                    MintAccent.copy(alpha = 0.8f)
+                    DarkGreen
                 } else {
-                    TextMutedDark.copy(alpha = 0.3f)
+                    onSurfaceVariant.copy(alpha = 0.3f)
                 }
 
                 drawLine(
@@ -144,7 +151,7 @@ fun RoverSpeedGauge(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.2.sp,
-                color = TextMutedDark
+                color = onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -153,14 +160,14 @@ fun RoverSpeedGauge(
                 text = String.format("%.1f", currentValue),
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = unit,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = FreshLeaf
+                color = DarkGreen
             )
 
             if (secondaryNote != null) {
@@ -169,7 +176,7 @@ fun RoverSpeedGauge(
                     text = secondaryNote,
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
-                    color = TextMutedDark.copy(alpha = 0.7f)
+                    color = onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }

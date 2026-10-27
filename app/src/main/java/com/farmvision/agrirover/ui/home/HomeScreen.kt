@@ -83,13 +83,12 @@ import com.farmvision.agrirover.ui.components.MetricTrend
 import com.farmvision.agrirover.ui.components.TactileButton
 import com.farmvision.agrirover.ui.components.TactileButtonVariant
 import com.farmvision.agrirover.ui.components.TelemetryMetricCard
-import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
-import com.farmvision.agrirover.ui.theme.FreshLeaf
-import com.farmvision.agrirover.ui.theme.MintAccent
-import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.DarkGreen
+import com.farmvision.agrirover.ui.theme.LightLime
+import com.farmvision.agrirover.ui.theme.PaleGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreen
 import com.farmvision.agrirover.ui.theme.StatusAlert
 import com.farmvision.agrirover.ui.theme.StatusWarning
-import com.farmvision.agrirover.ui.theme.TextMutedDark
 import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 import kotlinx.coroutines.launch
 
@@ -272,7 +271,7 @@ private fun AlertsTickerBar(
     if (alerts.isNotEmpty()) {
         val latestAlert = alerts.first()
         val isWarningOrError = latestAlert.severity == FarmVisionStatusType.Warning || latestAlert.severity == FarmVisionStatusType.Error
-        val borderColor = if (isWarningOrError) StatusWarning else FreshLeaf
+        val borderColor = if (isWarningOrError) StatusWarning else DarkGreen
         val icon = if (isWarningOrError) Icons.Rounded.Warning else Icons.Rounded.CheckCircle
 
         GlassmorphicCard(
@@ -320,7 +319,7 @@ private fun AlertsTickerBar(
                             Text(
                                 text = "• ${latestAlert.timestamp}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextMutedDark,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 10.sp
                             )
                         }
@@ -339,12 +338,12 @@ private fun AlertsTickerBar(
                         text = "View",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = FreshLeaf
+                        color = DarkGreen
                     )
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
                         contentDescription = "View alerts",
-                        tint = FreshLeaf,
+                        tint = DarkGreen,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -353,7 +352,7 @@ private fun AlertsTickerBar(
     } else {
         GlassmorphicCard(
             modifier = modifier.fillMaxWidth(),
-            borderColor = FreshLeaf.copy(alpha = 0.35f),
+            borderColor = DarkGreen.copy(alpha = 0.35f),
             shape = RoundedCornerShape(14.dp)
         ) {
             Row(
@@ -365,7 +364,7 @@ private fun AlertsTickerBar(
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = null,
-                    tint = FreshLeaf,
+                    tint = DarkGreen,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -373,7 +372,7 @@ private fun AlertsTickerBar(
                     text = "All Systems Nominal • Zero Active Warnings",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
-                    color = FreshLeaf
+                    color = DarkGreen
                 )
             }
         }
@@ -399,7 +398,7 @@ private fun MissionStatusCard(
 
     GlassmorphicCard(
         modifier = modifier.fillMaxWidth(),
-        borderColor = if (telemetry.isEmergencyCutoff) StatusAlert.copy(alpha = 0.6f) else MintAccent.copy(alpha = 0.35f),
+        borderColor = if (telemetry.isEmergencyCutoff) StatusAlert.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant,
         shape = RoundedCornerShape(20.dp),
         onClick = onNavigateToRover
     ) {
@@ -422,13 +421,13 @@ private fun MissionStatusCard(
                             .clip(RoundedCornerShape(10.dp))
                             .background(
                                 if (telemetry.isEmergencyCutoff) StatusAlert.copy(alpha = 0.15f)
-                                else PrimaryGreen.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.primaryContainer
                             )
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Explore,
                             contentDescription = null,
-                            tint = if (telemetry.isEmergencyCutoff) StatusAlert else FreshLeaf,
+                            tint = if (telemetry.isEmergencyCutoff) StatusAlert else DarkGreen,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -438,13 +437,13 @@ private fun MissionStatusCard(
                             text = "MISSION CONTROL",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MintAccent,
+                            color = DarkGreen,
                             fontSize = 11.sp
                         )
                         Text(
                             text = telemetry.roverIdentifier,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextMutedDark
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -501,7 +500,7 @@ private fun MissionStatusCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(DarkSurfaceVariant)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
@@ -509,7 +508,7 @@ private fun MissionStatusCard(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
                             fontSize = 10.sp,
-                            color = MintAccent
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -517,7 +516,7 @@ private fun MissionStatusCard(
                 Text(
                     text = "Tap to open controls →",
                     style = MaterialTheme.typography.labelSmall,
-                    color = FreshLeaf
+                    color = DarkGreen
                 )
             }
         }
@@ -533,7 +532,7 @@ private fun MissionMetaPill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(DarkSurfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         Column {
@@ -542,7 +541,7 @@ private fun MissionMetaPill(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 fontSize = 9.sp,
-                color = TextMutedDark
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
@@ -921,7 +920,7 @@ private fun HomeTopBar(
                 Text(
                     text = "Smart AgriRover System",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = DarkGreen
                 )
             }
         }
@@ -1004,7 +1003,7 @@ private fun RoverOverviewCard(
                 Icon(
                     imageVector = Icons.Rounded.BatteryChargingFull,
                     contentDescription = "Battery",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = DarkGreen,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(FarmVisionSpacing.extraSmall))

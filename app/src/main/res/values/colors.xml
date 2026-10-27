@@ -1,22 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Core AgriRover Brand Colors -->
-    <color name="deep_forest">#123B2A</color>
-    <color name="primary_green">#218C5B</color>
-    <color name="fresh_leaf">#62C985</color>
-    <color name="mint_accent">#A8E6C1</color>
-    <color name="warm_off_white">#F5F8F3</color>
-    <color name="dark_background">#0B1410</color>
-    <color name="dark_surface">#14221B</color>
-    <color name="dark_surface_variant">#1C2E25</color>
-    <color name="primary_text">#17231C</color>
-    <color name="dark_theme_text">#E8F1EB</color>
-    <color name="text_muted_dark">#9EB4A7</color>
-    <color name="border_subtle_dark">#243B30</color>
+    <!-- Core AgriRover Brand Colors - Redesign (Parrot Green + White) -->
+    <color name="parrot_green">#78E000</color>
+    <color name="parrot_green_deep">#3CB300</color>
+    <color name="dark_green">#287A20</color>
+    <color name="light_lime">#D4F8A8</color>
+    <color name="pale_green">#EFFBE8</color>
+    <color name="pure_white">#FFFFFF</color>
+    <color name="soft_white">#F7FBF4</color>
+    <color name="text_primary">#1B2E1B</color>
+    <color name="text_secondary">#5C6B5C</color>
+    <color name="border_subtle">#DDE8D5</color>
+
+    <!-- Legacy / Compatibility Tokens -->
+    <color name="deep_forest">#287A20</color>
+    <color name="primary_green">#287A20</color>
+    <color name="fresh_leaf">#287A20</color>
+    <color name="mint_accent">#D4F8A8</color>
+    <color name="warm_off_white">#F7FBF4</color>
+    <color name="dark_background">#0D1710</color>
+    <color name="dark_surface">#132218</color>
+    <color name="dark_surface_variant">#1A2E20</color>
+    <color name="primary_text">#1B2E1B</color>
+    <color name="dark_theme_text">#F2F8F1</color>
+    <color name="text_muted_dark">#9EB5A2</color>
+    <color name="border_subtle_dark">#243B2A</color>
 
     <!-- Semantic Status Colors -->
-    <color name="status_online">#2ECC71</color>
-    <color name="status_warning">#F39C12</color>
-    <color name="status_alert">#E74C3C</color>
-    <color name="status_info">#3498DB</color>
+    <color name="status_online">#1B7A43</color>
+    <color name="status_warning">#945200</color>
+    <color name="status_alert">#BA2518</color>
+    <color name="status_info">#1B5E8A</color>
 </resources>

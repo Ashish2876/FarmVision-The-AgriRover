@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.FarmVision" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/dark_background</item>
-        <item name="android:navigationBarColor">@color/dark_background</item>
-        <item name="android:windowBackground">@color/dark_background</item>
+        <item name="android:statusBarColor">@color/soft_white</item>
+        <item name="android:navigationBarColor">@color/pure_white</item>
+        <item name="android:windowBackground">@color/soft_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

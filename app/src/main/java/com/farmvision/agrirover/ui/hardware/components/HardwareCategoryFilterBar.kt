@@ -57,7 +57,7 @@ fun HardwareCategoryFilterBar(
                     enabled = true,
                     selected = isSelected,
                     borderColor = MaterialTheme.colorScheme.outlineVariant,
-                    selectedBorderColor = MaterialTheme.colorScheme.primary,
+                    selectedBorderColor = MaterialTheme.colorScheme.secondary,
                     borderWidth = 1.dp,
                     selectedBorderWidth = 1.5.dp
                 )

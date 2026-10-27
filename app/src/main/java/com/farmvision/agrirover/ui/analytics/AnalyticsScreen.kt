@@ -1,19 +1,30 @@
 package com.farmvision.agrirover.ui.analytics
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,11 +33,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionCard
@@ -36,16 +47,25 @@ import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusBadg
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
 import com.farmvision.agrirover.data.model.AnalyticsTimeRange
-import com.farmvision.agrirover.data.model.SensorDataPoint
-import com.farmvision.agrirover.data.model.TemperatureUnit
-import com.farmvision.agrirover.ui.theme.FreshLeaf
+import com.farmvision.agrirover.ui.analytics.components.AccessibleHistoryTable
+import com.farmvision.agrirover.ui.analytics.components.AnalyticsKpiSummaryCard
+import com.farmvision.agrirover.ui.analytics.components.HistoricalBoundedCanvasChart
+import com.farmvision.agrirover.ui.analytics.components.HistoricalMetricSelector
+import com.farmvision.agrirover.ui.analytics.components.HistoricalRangeSelector
+import com.farmvision.agrirover.ui.analytics.components.HistoricalRecordsList
 import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 
 /**
- * Field Analytics Screen.
- * Visualizes deterministic historical soil moisture and ambient temperature curves
- * corresponding to the user-selected time range (24 Hours, 7 Days, 30 Days) and unit preferences.
- * All historical measurements are strictly labelled as simulated DEMO DATA.
+ * Field Analytics Screen (Phase 9 — Analytics & History).
+ * Visualizes historical telemetry, honest statistics, bounded Canvas charts with gap breaks,
+ * an accessible table alternative, and reverse-chronological log records.
+ *
+ * Invariants:
+ * - Extension of the existing Analytics destination (no new destination).
+ * - Soil Probe 1 and Probe 2 are plotted as raw ADC counts on separate series (Default D11).
+ * - Gaps in telemetry are preserved as line breaks (Default D9).
+ * - Demo and Live data are never merged into a single statistic (Default D5).
+ * - Canvas chart has TalkBack merged semantics and table view alternative.
  */
 @Composable
 fun AnalyticsScreen(
@@ -54,20 +74,15 @@ fun AnalyticsScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    val currentRange by viewModel.analyticsRange.collectAsState()
+    val uiState by viewModel.analyticsUiState.collectAsState()
     val settings by viewModel.settings.collectAsState()
-
-    val moisturePoints = viewModel.getSoilMoistureHistory(currentRange)
-    val tempPoints = viewModel.getTemperatureHistory(currentRange, settings.temperatureUnit)
-    val kpis = viewModel.getAnalyticsKpis(currentRange, settings.temperatureUnit)
-
-    val tempMinVal = if (settings.temperatureUnit == TemperatureUnit.Fahrenheit) 55f else 15f
-    val tempMaxVal = if (settings.temperatureUnit == TemperatureUnit.Fahrenheit) 95f else 35f
+    val legacyKpis = viewModel.getAnalyticsKpis(uiState.selectedRange, settings.temperatureUnit)
 
     Surface(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding(),
+            .statusBarsPadding()
+            .testTag("analytics_screen"),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
@@ -90,136 +105,300 @@ fun AnalyticsScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Historical Sensor Trends & Agronomics",
+                        text = "Historical Telemetry, Statistics & Bounded Charts",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
-                FarmVisionStatusBadge(status = FarmVisionStatusType.DemoData)
+                val badgeType = if (uiState.isDemoModeActive) FarmVisionStatusType.DemoData else FarmVisionStatusType.Active
+                FarmVisionStatusBadge(status = badgeType)
             }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
-            FarmVisionDemoBanner(
-                message = "DEMO DATA: Time-series sensor points, averages, and historical telemetry are deterministic simulations."
-            )
+            // Honest Provenance Banner (Default D5 & Section 6.4)
+            if (uiState.isDemoModeActive) {
+                FarmVisionDemoBanner(
+                    message = "DEMO DATA: Historical points, diurnal curves, and statistics are deterministic simulations. Not measured from physical hardware."
+                )
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "LIVE HARDWARE HISTORY: Displaying real measurements stored from ESP32 telemetry. Gaps reflect unpolled periods.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
 
-            // Dynamic Time Range Selector
+            // Mode Toggle: Demo Analytics vs Live Hardware History
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
             ) {
-                AnalyticsTimeRange.entries.forEach { range ->
-                    val isSelected = currentRange == range
-                    Surface(
-                        onClick = { viewModel.setAnalyticsRange(range) },
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = range.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
-
-            // 1. Soil Moisture Trend Chart Card
-            FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Soil Moisture History (%)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                ModeToggleChip(
+                    label = "Demo Simulation",
+                    isSelected = uiState.isDemoModeActive,
+                    onClick = { viewModel.toggleAnalyticsDemoMode(true) },
+                    modifier = Modifier.weight(1f),
+                    testTag = "analytics_mode_demo_chip"
                 )
-                Text(
-                    text = "Timeframe: ${currentRange.label} • Optimal rootzone band: 35% – 55%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ModeToggleChip(
+                    label = "Live Hardware",
+                    isSelected = !uiState.isDemoModeActive,
+                    onClick = { viewModel.toggleAnalyticsDemoMode(false) },
+                    modifier = Modifier.weight(1f),
+                    testTag = "analytics_mode_live_chip"
                 )
-
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
-
-                SensorLineChart(
-                    points = moisturePoints,
-                    lineColor = FreshLeaf,
-                    minValue = 30f,
-                    maxValue = 55f
-                )
-
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    moisturePoints.forEach { pt ->
-                        Text(
-                            text = pt.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
 
-            // 2. Ambient Temperature History Chart Card (respects unit preference)
-            FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
+            // 1. Metric Selector (Section 6.1)
+            Text(
+                text = "Select Sensor Metric",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+            HistoricalMetricSelector(
+                selectedMetric = uiState.selectedMetric,
+                onMetricSelected = { viewModel.setAnalyticsMetric(it) }
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+
+            // 2. Rolling Time Range Selector (Default D6)
+            Text(
+                text = "Time Window (Rolling [now - duration, now])",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+            HistoricalRangeSelector(
+                selectedRange = uiState.selectedRange,
+                onRangeSelected = { viewModel.setAnalyticsRange(it) }
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+
+            // 3. View Mode Toggle: Bounded Canvas Chart vs Accessible Table View
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Ambient Temperature (${settings.temperatureUnit.symbol})",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Visualization View",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Timeframe: ${currentRange.label} • Diurnal thermal swing",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (!uiState.isTableViewSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .selectable(
+                                selected = !uiState.isTableViewSelected,
+                                role = Role.Tab,
+                                onClick = { viewModel.setAnalyticsTableView(false) }
+                            )
+                            .testTag("chart_view_toggle_button")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = "Chart View",
+                                tint = if (!uiState.isTableViewSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text(
+                                text = "Chart",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (!uiState.isTableViewSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-                SensorLineChart(
-                    points = tempPoints,
-                    lineColor = Color(0xFFE5A93C),
-                    minValue = tempMinVal,
-                    maxValue = tempMaxVal
-                )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (uiState.isTableViewSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 48.dp)
+                            .selectable(
+                                selected = uiState.isTableViewSelected,
+                                role = Role.Tab,
+                                onClick = { viewModel.setAnalyticsTableView(true) }
+                            )
+                            .testTag("table_view_toggle_button")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TableChart,
+                                contentDescription = "Table View",
+                                tint = if (uiState.isTableViewSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.size(4.dp))
+                            Text(
+                                text = "Table",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (uiState.isTableViewSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
 
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    tempPoints.forEach { pt ->
-                        Text(
-                            text = pt.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+            // State Handling: Loading, Error, Empty, or Content
+            when {
+                uiState.isLoading -> {
+                    FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                            Spacer(modifier = Modifier.size(16.dp))
+                            Text(
+                                text = "Processing historical telemetry...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                uiState.errorMessage != null -> {
+                    FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Unable to load analytics",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = uiState.errorMessage ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { viewModel.refreshAnalytics() },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.defaultMinSize(minHeight = 48.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Refresh, contentDescription = "Retry")
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
+
+                uiState.isEmpty -> {
+                    // Honest Empty State (Section 7)
+                    FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No Live Telemetry Stored",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "No live hardware samples have been recorded yet for ${uiState.selectedMetric.displayName} within the selected ${uiState.selectedRange.label} window.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { viewModel.toggleAnalyticsDemoMode(true) },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .testTag("switch_to_demo_analytics_button")
+                            ) {
+                                Text("View Labelled Demo Analytics")
+                            }
+                        }
+                    }
+                }
+
+                else -> {
+                    // 4. Primary Visualization: Chart or Accessible Table View
+                    if (uiState.isTableViewSelected) {
+                        AccessibleHistoryTable(
+                            series = uiState.primarySeries!!
+                        )
+                    } else {
+                        HistoricalBoundedCanvasChart(
+                            primarySeries = uiState.primarySeries!!,
+                            secondarySeries = uiState.secondarySeries,
+                            timeRange = uiState.selectedRange
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+
+                    // 5. Summary Statistics Card (Default D7 & D8)
+                    AnalyticsKpiSummaryCard(
+                        metric = uiState.selectedMetric,
+                        statistics = uiState.statistics,
+                        trend = uiState.trend,
+                        provenanceLabel = uiState.provenanceLabel
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
 
-            // Dynamic Summary KPI Cards corresponding to selected range
+            // 6. Dynamic Agronomic KPIs (backward compatibility)
             FarmVisionSectionHeader(
-                title = "Aggregated Agronomic KPIs",
-                description = "${currentRange.label} summary metrics (${settings.temperatureUnit.symbol})"
+                title = "Aggregated Agronomic Indicators",
+                description = "${uiState.selectedRange.label} summary metrics (${settings.temperatureUnit.symbol})"
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
@@ -228,27 +407,37 @@ fun AnalyticsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small)
             ) {
-                KpiCard(
+                KpiBox(
                     title = "Avg Moisture",
-                    value = kpis.avgMoisture,
+                    value = legacyKpis.avgMoisture,
                     subtitle = "Nominal",
                     modifier = Modifier.weight(1f)
                 )
 
-                KpiCard(
+                KpiBox(
                     title = "Thermal Range",
-                    value = kpis.thermalRange,
+                    value = legacyKpis.thermalRange,
                     subtitle = "Optimal",
                     modifier = Modifier.weight(1f)
                 )
 
-                KpiCard(
+                KpiBox(
                     title = "Irrigation",
-                    value = kpis.irrigationVolume,
+                    value = legacyKpis.irrigationVolume,
                     subtitle = "Logged",
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
+
+            // 7. Historical Records Log (Default D12: Paginated reverse chronological)
+            HistoricalRecordsList(
+                records = uiState.recentRecords,
+                totalCount = uiState.totalRecordCount,
+                hasMore = uiState.hasMoreRecords,
+                onLoadMore = { viewModel.loadMoreRecentRecords() }
+            )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.huge))
         }
@@ -256,64 +445,42 @@ fun AnalyticsScreen(
 }
 
 @Composable
-private fun SensorLineChart(
-    points: List<SensorDataPoint>,
-    lineColor: Color,
-    minValue: Float,
-    maxValue: Float,
-    modifier: Modifier = Modifier
+private fun ModeToggleChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    testTag: String = ""
 ) {
-    Box(
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary) else null,
         modifier = modifier
-            .fillMaxWidth()
-            .height(140.dp)
+            .defaultMinSize(minHeight = 48.dp)
+            .selectable(
+                selected = isSelected,
+                role = Role.Tab,
+                onClick = onClick
+            )
+            .testTag(testTag)
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            if (points.size < 2) return@Canvas
-
-            val width = size.width
-            val height = size.height
-            val spacing = width / (points.size - 1)
-
-            // Draw subtle horizontal grid lines
-            val gridColor = Color.Gray.copy(alpha = 0.2f)
-            drawLine(gridColor, Offset(0f, height * 0.25f), Offset(width, height * 0.25f), strokeWidth = 1f)
-            drawLine(gridColor, Offset(0f, height * 0.50f), Offset(width, height * 0.50f), strokeWidth = 1f)
-            drawLine(gridColor, Offset(0f, height * 0.75f), Offset(width, height * 0.75f), strokeWidth = 1f)
-
-            val path = Path()
-            val valueRange = (maxValue - minValue).coerceAtLeast(1f)
-
-            points.forEachIndexed { index, point ->
-                val x = index * spacing
-                val normalizedY = (point.value - minValue) / valueRange
-                val y = height - (normalizedY * height).coerceIn(0f, height)
-
-                if (index == 0) {
-                    path.moveTo(x, y)
-                } else {
-                    path.lineTo(x, y)
-                }
-
-                // Draw point node
-                drawCircle(
-                    color = lineColor,
-                    radius = 4.dp.toPx(),
-                    center = Offset(x, y)
-                )
-            }
-
-            drawPath(
-                path = path,
-                color = lineColor,
-                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        Box(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun KpiCard(
+private fun KpiBox(
     title: String,
     value: String,
     subtitle: String,
@@ -322,7 +489,7 @@ private fun KpiCard(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(FarmVisionSpacing.borderThin, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(FarmVisionSpacing.borderThin, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier
     ) {
         Column(
@@ -345,7 +512,7 @@ private fun KpiCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }

@@ -112,16 +112,14 @@ import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
 import com.farmvision.agrirover.data.model.FarmSettings
 import com.farmvision.agrirover.data.model.RoverTelemetry
-import com.farmvision.agrirover.ui.theme.DarkBackground
-import com.farmvision.agrirover.ui.theme.DarkSurface
-import com.farmvision.agrirover.ui.theme.DarkSurfaceContainerHigh
-import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
-import com.farmvision.agrirover.ui.theme.DeepForest
-import com.farmvision.agrirover.ui.theme.FreshLeaf
+import com.farmvision.agrirover.ui.theme.DarkGreen
+import com.farmvision.agrirover.ui.theme.LightLime
 import com.farmvision.agrirover.ui.theme.LocalAgriStatusColors
-import com.farmvision.agrirover.ui.theme.MintAccent
-import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.PaleGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreenDeep
 import com.farmvision.agrirover.ui.theme.TelemetryValueLarge
+import com.farmvision.agrirover.ui.theme.TextPrimary
 import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 
 /**
@@ -169,7 +167,7 @@ fun RoverScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         if (isLandscape) {
@@ -360,8 +358,8 @@ private fun RoverTopStatusBar(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -374,14 +372,14 @@ private fun RoverTopStatusBar(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
-                    color = PrimaryGreen.copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.Eco,
                             contentDescription = null,
-                            tint = FreshLeaf,
+                            tint = DarkGreen,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -395,13 +393,13 @@ private fun RoverTopStatusBar(
                             text = "FarmVision ",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "AgriRover",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = FreshLeaf
+                            color = DarkGreen
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -418,7 +416,7 @@ private fun RoverTopStatusBar(
                         Text(
                             text = " • ${telemetry.lastUpdated}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = FreshLeaf,
+                            color = DarkGreen,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -430,8 +428,8 @@ private fun RoverTopStatusBar(
                 // Truthful Demo / Connection Badge
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = FreshLeaf.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, FreshLeaf.copy(alpha = 0.5f)),
+                    color = PaleGreen,
+                    border = BorderStroke(1.dp, DarkGreen.copy(alpha = 0.35f)),
                     modifier = Modifier.clickable { onBadgeClick?.invoke() }
                 ) {
                     Row(
@@ -442,7 +440,7 @@ private fun RoverTopStatusBar(
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(FreshLeaf)
+                                .background(DarkGreen)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         val isDemo = telemetry.isSimulation || telemetry.connectionStatus == FarmVisionStatusType.DemoData
@@ -455,7 +453,7 @@ private fun RoverTopStatusBar(
                         Text(
                             text = connectionText,
                             style = MaterialTheme.typography.labelSmall,
-                            color = FreshLeaf,
+                            color = DarkGreen,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -466,8 +464,8 @@ private fun RoverTopStatusBar(
                 // Battery Pill
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = DarkSurfaceContainerHigh,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -476,14 +474,14 @@ private fun RoverTopStatusBar(
                         Icon(
                             imageVector = Icons.Rounded.BatteryChargingFull,
                             contentDescription = "Battery",
-                            tint = FreshLeaf,
+                            tint = DarkGreen,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${telemetry.batteryPercent}%",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -504,8 +502,8 @@ private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
             .fillMaxWidth()
             .height(180.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Simulated Crop Rows Canvas
@@ -540,7 +538,7 @@ private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
                 for (startRatio in rowStarts) {
                     val bottomX = w * startRatio
                     drawLine(
-                        color = FreshLeaf.copy(alpha = 0.6f),
+                        color = ParrotGreen.copy(alpha = 0.6f),
                         start = vanishingPoint,
                         end = Offset(bottomX, h),
                         strokeWidth = if (startRatio in 0.4f..0.6f) 5f else 3f
@@ -549,7 +547,7 @@ private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
 
                 // Grid Horizon Line
                 drawLine(
-                    color = FreshLeaf.copy(alpha = 0.3f),
+                    color = ParrotGreen.copy(alpha = 0.3f),
                     start = Offset(0f, h * 0.45f),
                     end = Offset(w, h * 0.45f),
                     strokeWidth = 2f
@@ -623,7 +621,7 @@ private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
                 )
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = DarkSurfaceContainerHigh
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
@@ -633,13 +631,13 @@ private fun RoverCameraPreviewCard(telemetry: RoverTelemetry) {
                             modifier = Modifier
                                 .size(5.dp)
                                 .clip(CircleShape)
-                                .background(FreshLeaf)
+                                .background(DarkGreen)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "28ms (Simulated)",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 8.sp
                         )
                     }
@@ -663,8 +661,8 @@ private fun RoverStatusOverviewCard(
             .fillMaxWidth()
             .height(180.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -682,13 +680,13 @@ private fun RoverStatusOverviewCard(
                     text = "Rover Status",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = telemetry.activeCommand,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (telemetry.isEmergencyCutoff) MaterialTheme.colorScheme.error else FreshLeaf,
+                    color = if (telemetry.isEmergencyCutoff) MaterialTheme.colorScheme.error else DarkGreen,
                     fontSize = 10.sp
                 )
             }
@@ -706,7 +704,7 @@ private fun RoverStatusOverviewCard(
 
                     // Main Chassis
                     drawRoundRect(
-                        color = PrimaryGreen,
+                        color = ParrotGreenDeep,
                         topLeft = Offset(w * 0.15f, h * 0.35f),
                         size = Size(w * 0.7f, h * 0.35f),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
@@ -714,7 +712,7 @@ private fun RoverStatusOverviewCard(
 
                     // Cab / Cabin
                     drawRoundRect(
-                        color = Color(0xFFF39C12),
+                        color = DarkGreen,
                         topLeft = Offset(w * 0.35f, h * 0.1f),
                         size = Size(w * 0.35f, h * 0.3f),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
@@ -727,7 +725,7 @@ private fun RoverStatusOverviewCard(
                         center = Offset(w * 0.25f, h * 0.7f)
                     )
                     drawCircle(
-                        color = Color(0xFFF39C12),
+                        color = LightLime,
                         radius = h * 0.16f,
                         center = Offset(w * 0.25f, h * 0.7f)
                     )
@@ -739,7 +737,7 @@ private fun RoverStatusOverviewCard(
                         center = Offset(w * 0.75f, h * 0.75f)
                     )
                     drawCircle(
-                        color = Color(0xFFF39C12),
+                        color = LightLime,
                         radius = h * 0.12f,
                         center = Offset(w * 0.75f, h * 0.75f)
                     )
@@ -752,7 +750,7 @@ private fun RoverStatusOverviewCard(
                         strokeWidth = 2f
                     )
                     drawCircle(
-                        color = FreshLeaf,
+                        color = DarkGreen,
                         radius = 2.5f,
                         center = Offset(w * 0.4f, 0f)
                     )
@@ -777,7 +775,7 @@ private fun RoverStatusOverviewCard(
                         text = "${telemetry.batteryPercent}% (${telemetry.batteryVoltage}V)",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 10.sp
                     )
                 }
@@ -787,8 +785,8 @@ private fun RoverStatusOverviewCard(
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
-                    color = FreshLeaf,
-                    trackColor = DarkSurfaceContainerHigh,
+                    color = DarkGreen,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
 
                 // Connectivity
@@ -805,7 +803,7 @@ private fun RoverStatusOverviewCard(
                     Text(
                         text = "Simulated SoftAP",
                         style = MaterialTheme.typography.labelSmall,
-                        color = FreshLeaf,
+                        color = DarkGreen,
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp
                     )
@@ -914,10 +912,10 @@ private fun FieldSensorReadingsSection(
                 value = String.format(java.util.Locale.US, "%.1f", telemetry.soilMoisture),
                 unit = "%",
                 statusLabel = "● Optimal",
-                statusColor = FreshLeaf,
+                statusColor = DarkGreen,
                 progress = (telemetry.soilMoisture / 100f).coerceIn(0f, 1f),
                 icon = Icons.Rounded.Eco,
-                iconTint = FreshLeaf
+                iconTint = DarkGreen
             )
 
             // 2. Air Temperature
@@ -927,10 +925,10 @@ private fun FieldSensorReadingsSection(
                 value = settings.temperatureUnit.formatValueOnly(telemetry.temperature),
                 unit = settings.temperatureUnit.symbol,
                 statusLabel = "● Nominal",
-                statusColor = Color(0xFFF39C12),
+                statusColor = LocalAgriStatusColors.current.warning,
                 progress = (telemetry.temperature / 50f).coerceIn(0f, 1f),
                 icon = Icons.Rounded.Thermostat,
-                iconTint = Color(0xFFE74C3C)
+                iconTint = LocalAgriStatusColors.current.warning
             )
         }
 
@@ -947,10 +945,10 @@ private fun FieldSensorReadingsSection(
                 value = String.format(java.util.Locale.US, "%.1f", telemetry.humidity),
                 unit = "%",
                 statusLabel = "● Normal",
-                statusColor = Color(0xFF3498DB),
+                statusColor = LocalAgriStatusColors.current.info,
                 progress = (telemetry.humidity / 100f).coerceIn(0f, 1f),
                 icon = Icons.Rounded.WaterDrop,
-                iconTint = Color(0xFF3498DB)
+                iconTint = LocalAgriStatusColors.current.info
             )
 
             // 4. Light Intensity
@@ -960,10 +958,10 @@ private fun FieldSensorReadingsSection(
                 value = "${telemetry.lightLux}",
                 unit = "lux",
                 statusLabel = "● Good",
-                statusColor = Color(0xFFF1C40F),
+                statusColor = LocalAgriStatusColors.current.warning,
                 progress = (telemetry.lightLux / 100000f).coerceIn(0f, 1f),
                 icon = Icons.Rounded.WbSunny,
-                iconTint = Color(0xFFF1C40F)
+                iconTint = LocalAgriStatusColors.current.warning
             )
         }
     }
@@ -984,8 +982,8 @@ private fun SensorCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -1026,7 +1024,7 @@ private fun SensorCard(
                     text = value,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
@@ -1044,7 +1042,7 @@ private fun SensorCard(
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = statusColor,
-                trackColor = DarkSurfaceContainerHigh,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
 
             Text(
@@ -1069,8 +1067,8 @@ private fun RoverMapCard() {
             .fillMaxWidth()
             .height(160.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -1088,7 +1086,7 @@ private fun RoverMapCard() {
                     Icon(
                         imageVector = Icons.Rounded.Map,
                         contentDescription = null,
-                        tint = FreshLeaf,
+                        tint = DarkGreen,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1096,20 +1094,20 @@ private fun RoverMapCard() {
                         text = "Rover Map",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "View Map",
                         style = MaterialTheme.typography.labelSmall,
-                        color = FreshLeaf,
+                        color = DarkGreen,
                         fontSize = 10.sp
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                         contentDescription = null,
-                        tint = FreshLeaf,
+                        tint = DarkGreen,
                         modifier = Modifier.size(12.dp)
                     )
                 }
@@ -1121,8 +1119,9 @@ private fun RoverMapCard() {
                     .fillMaxWidth()
                     .height(84.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF14241B))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
+                val outlineColor = MaterialTheme.colorScheme.outlineVariant
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val w = size.width
                     val h = size.height
@@ -1131,10 +1130,10 @@ private fun RoverMapCard() {
                     for (i in 0..6) {
                         val y = h * (i / 6f)
                         drawLine(
-                            color = Color(0xFF1F382A),
+                            color = outlineColor.copy(alpha = 0.35f),
                             start = Offset(0f, y),
                             end = Offset(w, y),
-                            strokeWidth = 6f
+                            strokeWidth = 4f
                         )
                     }
 
@@ -1145,7 +1144,7 @@ private fun RoverMapCard() {
                     }
                     drawPath(
                         path = path,
-                        color = FreshLeaf,
+                        color = DarkGreen,
                         style = Stroke(
                             width = 3f,
                             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f)
@@ -1154,19 +1153,19 @@ private fun RoverMapCard() {
 
                     // Rover Marker (Green Dot with Ripple)
                     drawCircle(
-                        color = FreshLeaf.copy(alpha = 0.3f),
+                        color = DarkGreen.copy(alpha = 0.3f),
                         radius = 12f,
                         center = Offset(w * 0.2f, h * 0.6f)
                     )
                     drawCircle(
-                        color = FreshLeaf,
+                        color = DarkGreen,
                         radius = 6f,
                         center = Offset(w * 0.2f, h * 0.6f)
                     )
 
                     // Target Waypoint Pin (Red Pin)
                     drawCircle(
-                        color = Color(0xFFE74C3C),
+                        color = Color(0xFFBA2518),
                         radius = 6f,
                         center = Offset(w * 0.75f, h * 0.5f)
                     )
@@ -1181,19 +1180,19 @@ private fun RoverMapCard() {
                 Text(
                     text = "● Rover",
                     style = MaterialTheme.typography.labelSmall,
-                    color = FreshLeaf,
+                    color = DarkGreen,
                     fontSize = 10.sp
                 )
                 Text(
                     text = "--- Path",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.LightGray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
                 Text(
                     text = "● Target",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFE74C3C),
+                    color = Color(0xFFBA2518),
                     fontSize = 10.sp
                 )
             }
@@ -1208,8 +1207,8 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
             .fillMaxWidth()
             .height(160.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -1222,7 +1221,7 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
                 Icon(
                     imageVector = Icons.Rounded.Eco,
                     contentDescription = null,
-                    tint = FreshLeaf,
+                    tint = DarkGreen,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -1230,7 +1229,7 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
                     text = "Task Info",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -1244,13 +1243,13 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
                         text = "Auto Scanning",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "20%",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
-                        color = FreshLeaf
+                        color = DarkGreen
                     )
                 }
                 Text(
@@ -1265,8 +1264,8 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
                         .fillMaxWidth()
                         .height(5.dp)
                         .clip(RoundedCornerShape(3.dp)),
-                    color = FreshLeaf,
-                    trackColor = DarkSurfaceContainerHigh,
+                    color = DarkGreen,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
             }
 
@@ -1277,21 +1276,21 @@ private fun RoverTaskInfoCard(telemetry: RoverTelemetry) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Target Area", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                    Text(text = telemetry.fieldName, style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                    Text(text = telemetry.fieldName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontSize = 9.sp)
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Distance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                    Text(text = "12.4 m (Simulated)", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                    Text(text = "12.4 m (Simulated)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontSize = 9.sp)
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Est. Time", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                    Text(text = "48 min", style = MaterialTheme.typography.labelSmall, color = FreshLeaf, fontSize = 9.sp)
+                    Text(text = "48 min", style = MaterialTheme.typography.labelSmall, color = DarkGreen, fontSize = 9.sp)
                 }
             }
         }
@@ -1311,8 +1310,8 @@ private fun MainControllerCockpit(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -1415,10 +1414,10 @@ private fun ControlModePillBar(
                     .testTag("rover_mode_${mode.name.lowercase()}")
                     .clickable { onModeSelect(mode) },
                 shape = RoundedCornerShape(10.dp),
-                color = if (isSelected) PrimaryGreen else DarkSurfaceContainerHigh,
+                color = if (isSelected) ParrotGreen else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(
                     1.dp,
-                    if (isSelected) FreshLeaf else MaterialTheme.colorScheme.outline
+                    if (isSelected) DarkGreen else MaterialTheme.colorScheme.outlineVariant
                 )
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -1426,7 +1425,7 @@ private fun ControlModePillBar(
                         text = label,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isSelected) TextPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 9.sp,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
@@ -1462,10 +1461,10 @@ private fun SpeedPresetPillBar(
                         .testTag("rover_speed_${preset.name.lowercase()}")
                         .clickable { onPresetSelect(preset) },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isSelected) FreshLeaf.copy(alpha = 0.25f) else DarkSurfaceContainerHigh,
+                    color = if (isSelected) LightLime else MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(
                         1.dp,
-                        if (isSelected) FreshLeaf else MaterialTheme.colorScheme.outline
+                        if (isSelected) DarkGreen else MaterialTheme.colorScheme.outlineVariant
                     )
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -1473,7 +1472,7 @@ private fun SpeedPresetPillBar(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) DarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 9.sp,
                             textAlign = TextAlign.Center
                         )
@@ -1508,8 +1507,8 @@ private fun PrimaryJoystickCockpitRow(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceContainerHigh.copy(alpha = 0.5f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -1541,14 +1540,14 @@ private fun PrimaryJoystickCockpitRow(
                     text = "Tactile Vector Telemetry",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = FreshLeaf,
+                    color = DarkGreen,
                     fontSize = 11.sp
                 )
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = DarkSurface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -1565,21 +1564,21 @@ private fun PrimaryJoystickCockpitRow(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(text = "Speed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                            Text(text = displaySpeed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (telemetry.isEmergencyCutoff) MaterialTheme.colorScheme.error else FreshLeaf, fontSize = 9.sp)
+                            Text(text = displaySpeed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (telemetry.isEmergencyCutoff) MaterialTheme.colorScheme.error else DarkGreen, fontSize = 9.sp)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(text = "Duty Cycle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                            Text(text = "${(telemetry.joystickVector.magnitude * telemetry.speedPreset.dutyFraction * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                            Text(text = "${(telemetry.joystickVector.magnitude * telemetry.speedPreset.dutyFraction * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontSize = 9.sp)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(text = "Diff Mix", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                            Text(text = "L: ${leftPct}% | R: ${rightPct}%", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 9.sp)
+                            Text(text = "L: ${leftPct}% | R: ${rightPct}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, fontSize = 9.sp)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1590,7 +1589,7 @@ private fun PrimaryJoystickCockpitRow(
                                 text = "(${String.format(java.util.Locale.US, "%.2f", telemetry.joystickVector.x)}, ${String.format(java.util.Locale.US, "%.2f", telemetry.joystickVector.y)})",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (telemetry.joystickVector.isNeutral) Color.Gray else FreshLeaf,
+                                color = if (telemetry.joystickVector.isNeutral) Color.Gray else DarkGreen,
                                 fontSize = 9.sp
                             )
                         }
@@ -1642,7 +1641,7 @@ private fun SpeedControlColumn(
             text = "$speedLevel/5",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = if (isCutoff) MaterialTheme.colorScheme.error else FreshLeaf
+            color = if (isCutoff) MaterialTheme.colorScheme.error else DarkGreen
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -1650,8 +1649,8 @@ private fun SpeedControlColumn(
         // Step Up
         Surface(
             shape = CircleShape,
-            color = DarkSurfaceContainerHigh,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .size(36.dp)
                 .clickable { onSpeedStepUp() }
@@ -1660,7 +1659,7 @@ private fun SpeedControlColumn(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowUp,
                     contentDescription = "Increase Speed",
-                    tint = Color.White,
+                    tint = DarkGreen,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1674,8 +1673,8 @@ private fun SpeedControlColumn(
                 .width(14.dp)
                 .height(80.dp)
                 .clip(RoundedCornerShape(7.dp))
-                .background(DarkSurfaceContainerHigh)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(7.dp)),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(7.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
             val fillRatio = speedLevel / 5f
@@ -1686,7 +1685,7 @@ private fun SpeedControlColumn(
                     .clip(RoundedCornerShape(7.dp))
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(FreshLeaf, PrimaryGreen)
+                            colors = listOf(ParrotGreen, DarkGreen)
                         )
                     )
             )
@@ -1697,8 +1696,8 @@ private fun SpeedControlColumn(
         // Step Down
         Surface(
             shape = CircleShape,
-            color = DarkSurfaceContainerHigh,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .size(36.dp)
                 .clickable { onSpeedStepDown() }
@@ -1707,7 +1706,7 @@ private fun SpeedControlColumn(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = "Decrease Speed",
-                    tint = Color.White,
+                    tint = DarkGreen,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1731,10 +1730,10 @@ private fun CircularDirectionalController(
             onClick = { onDirectionClick("FORWARD") },
             enabled = isEnabled,
             shape = CircleShape,
-            color = if (activeCommand == "FORWARD" && isEnabled) PrimaryGreen else DarkSurfaceContainerHigh,
+            color = if (activeCommand == "FORWARD" && isEnabled) ParrotGreen else MaterialTheme.colorScheme.surfaceVariant,
             border = BorderStroke(
                 if (activeCommand == "FORWARD" && isEnabled) 2.dp else 1.dp,
-                if (activeCommand == "FORWARD" && isEnabled) FreshLeaf else MaterialTheme.colorScheme.outline
+                if (activeCommand == "FORWARD" && isEnabled) DarkGreen else MaterialTheme.colorScheme.outlineVariant
             ),
             modifier = Modifier
                 .size(56.dp)
@@ -1745,7 +1744,7 @@ private fun CircularDirectionalController(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowUp,
                     contentDescription = "Drive Forward",
-                    tint = if (activeCommand == "FORWARD" && isEnabled) Color.White else FreshLeaf,
+                    tint = if (activeCommand == "FORWARD" && isEnabled) TextPrimary else DarkGreen,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -1763,10 +1762,10 @@ private fun CircularDirectionalController(
                 onClick = { onDirectionClick("TURN LEFT") },
                 enabled = isEnabled,
                 shape = CircleShape,
-                color = if (activeCommand == "TURN LEFT" && isEnabled) PrimaryGreen else DarkSurfaceContainerHigh,
+                color = if (activeCommand == "TURN LEFT" && isEnabled) ParrotGreen else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(
                     if (activeCommand == "TURN LEFT" && isEnabled) 2.dp else 1.dp,
-                    if (activeCommand == "TURN LEFT" && isEnabled) FreshLeaf else MaterialTheme.colorScheme.outline
+                    if (activeCommand == "TURN LEFT" && isEnabled) DarkGreen else MaterialTheme.colorScheme.outlineVariant
                 ),
                 modifier = Modifier
                     .size(56.dp)
@@ -1777,7 +1776,7 @@ private fun CircularDirectionalController(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
                         contentDescription = "Turn Left",
-                        tint = if (activeCommand == "TURN LEFT" && isEnabled) Color.White else FreshLeaf,
+                        tint = if (activeCommand == "TURN LEFT" && isEnabled) TextPrimary else DarkGreen,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -1788,10 +1787,10 @@ private fun CircularDirectionalController(
                 onClick = onStopClick,
                 enabled = isEnabled,
                 shape = CircleShape,
-                color = if (isEnabled) Color(0xFFC0392B).copy(alpha = 0.2f) else DarkSurfaceContainerHigh.copy(alpha = 0.4f),
+                color = if (isEnabled) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                 border = BorderStroke(
                     2.dp,
-                    if (isEnabled) Color(0xFFE74C3C) else MaterialTheme.colorScheme.outline
+                    if (isEnabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
                 ),
                 modifier = Modifier
                     .size(64.dp)
@@ -1803,14 +1802,14 @@ private fun CircularDirectionalController(
                         Icon(
                             imageVector = Icons.Rounded.Stop,
                             contentDescription = "Hold Position / Stop",
-                            tint = if (isEnabled) Color(0xFFE74C3C) else Color.Gray,
+                            tint = if (isEnabled) MaterialTheme.colorScheme.error else Color.Gray,
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
                             text = "STOP",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (isEnabled) Color(0xFFE74C3C) else Color.Gray,
+                            color = if (isEnabled) MaterialTheme.colorScheme.error else Color.Gray,
                             fontSize = 9.sp
                         )
                     }
@@ -1822,10 +1821,10 @@ private fun CircularDirectionalController(
                 onClick = { onDirectionClick("TURN RIGHT") },
                 enabled = isEnabled,
                 shape = CircleShape,
-                color = if (activeCommand == "TURN RIGHT" && isEnabled) PrimaryGreen else DarkSurfaceContainerHigh,
+                color = if (activeCommand == "TURN RIGHT" && isEnabled) ParrotGreen else MaterialTheme.colorScheme.surfaceVariant,
                 border = BorderStroke(
                     if (activeCommand == "TURN RIGHT" && isEnabled) 2.dp else 1.dp,
-                    if (activeCommand == "TURN RIGHT" && isEnabled) FreshLeaf else MaterialTheme.colorScheme.outline
+                    if (activeCommand == "TURN RIGHT" && isEnabled) DarkGreen else MaterialTheme.colorScheme.outlineVariant
                 ),
                 modifier = Modifier
                     .size(56.dp)
@@ -1836,7 +1835,7 @@ private fun CircularDirectionalController(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                         contentDescription = "Turn Right",
-                        tint = if (activeCommand == "TURN RIGHT" && isEnabled) Color.White else FreshLeaf,
+                        tint = if (activeCommand == "TURN RIGHT" && isEnabled) TextPrimary else DarkGreen,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -1850,10 +1849,10 @@ private fun CircularDirectionalController(
             onClick = { onDirectionClick("REVERSE") },
             enabled = isEnabled,
             shape = CircleShape,
-            color = if (activeCommand == "REVERSE" && isEnabled) PrimaryGreen else DarkSurfaceContainerHigh,
+            color = if (activeCommand == "REVERSE" && isEnabled) ParrotGreen else MaterialTheme.colorScheme.surfaceVariant,
             border = BorderStroke(
                 if (activeCommand == "REVERSE" && isEnabled) 2.dp else 1.dp,
-                if (activeCommand == "REVERSE" && isEnabled) FreshLeaf else MaterialTheme.colorScheme.outline
+                if (activeCommand == "REVERSE" && isEnabled) DarkGreen else MaterialTheme.colorScheme.outlineVariant
             ),
             modifier = Modifier
                 .size(56.dp)
@@ -1864,7 +1863,7 @@ private fun CircularDirectionalController(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowDown,
                     contentDescription = "Drive Reverse",
-                    tint = if (activeCommand == "REVERSE" && isEnabled) Color.White else FreshLeaf,
+                    tint = if (activeCommand == "REVERSE" && isEnabled) TextPrimary else DarkGreen,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -1877,7 +1876,7 @@ private fun CircularDirectionalController(
             text = "Vector: ${activeCommand}",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
-            color = if (activeCommand == "HOLD POSITION") Color.LightGray else FreshLeaf,
+            color = if (activeCommand == "HOLD POSITION") Color.Gray else DarkGreen,
             fontSize = 11.sp
         )
     }
@@ -1918,7 +1917,7 @@ private fun AuxiliaryControlsGrid(
                     icon = Icons.Rounded.Highlight,
                     label = "Front Light",
                     isActive = telemetry.isFrontLightOn,
-                    activeColor = FreshLeaf,
+                    activeColor = DarkGreen,
                     onClick = { viewModel.toggleFrontLight() }
                 )
             }
@@ -1938,7 +1937,7 @@ private fun AuxiliaryControlsGrid(
                     icon = Icons.AutoMirrored.Rounded.VolumeUp,
                     label = "Horn",
                     isActive = telemetry.isHornActive,
-                    activeColor = FreshLeaf,
+                    activeColor = DarkGreen,
                     onClick = { viewModel.triggerHorn() }
                 )
             }
@@ -1958,7 +1957,7 @@ private fun AuxiliaryControlsGrid(
             Spacer(modifier = Modifier.height(2.dp))
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = DarkSurfaceContainerHigh,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .size(34.dp)
                     .clickable { /* Stepper Up Demo */ }
@@ -1967,7 +1966,7 @@ private fun AuxiliaryControlsGrid(
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowUp,
                         contentDescription = "Chute Up",
-                        tint = Color.White,
+                        tint = DarkGreen,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1975,14 +1974,14 @@ private fun AuxiliaryControlsGrid(
             Spacer(modifier = Modifier.height(4.dp))
             Surface(
                 shape = CircleShape,
-                color = PrimaryGreen.copy(alpha = 0.2f),
+                color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(28.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Rounded.Build,
                         contentDescription = "Tool Arm",
-                        tint = FreshLeaf,
+                        tint = DarkGreen,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -1990,7 +1989,7 @@ private fun AuxiliaryControlsGrid(
             Spacer(modifier = Modifier.height(4.dp))
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = DarkSurfaceContainerHigh,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .size(34.dp)
                     .clickable { /* Stepper Down Demo */ }
@@ -1999,7 +1998,7 @@ private fun AuxiliaryControlsGrid(
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = "Chute Down",
-                        tint = Color.White,
+                        tint = DarkGreen,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -2019,10 +2018,10 @@ private fun AuxToggleButton(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        color = if (isActive) activeColor.copy(alpha = 0.2f) else DarkSurfaceContainerHigh,
+        color = if (isActive) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(
             1.dp,
-            if (isActive) activeColor else MaterialTheme.colorScheme.outline
+            if (isActive) activeColor else MaterialTheme.colorScheme.outlineVariant
         ),
         modifier = Modifier.size(52.dp)
     ) {
@@ -2034,7 +2033,7 @@ private fun AuxToggleButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive) activeColor else Color.LightGray,
+                tint = if (isActive) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
             Text(
@@ -2071,8 +2070,8 @@ private fun BottomCockpitRow(
             // Camera Tilt
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = DarkSurfaceContainerHigh,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .height(48.dp)
                     .weight(0.9f)
@@ -2087,20 +2086,20 @@ private fun BottomCockpitRow(
                     Icon(
                         imageVector = Icons.Rounded.CameraAlt,
                         contentDescription = "Camera Tilt",
-                        tint = FreshLeaf,
+                        tint = DarkGreen,
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
                         text = "Tilt: ${telemetry.cameraTiltAngle}°",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 10.sp
                     )
                     Row {
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowUp,
                             contentDescription = "Tilt Up",
-                            tint = Color.White,
+                            tint = DarkGreen,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable { viewModel.setCameraTilt(telemetry.cameraTiltAngle + 5) }
@@ -2108,7 +2107,7 @@ private fun BottomCockpitRow(
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Tilt Down",
-                            tint = Color.White,
+                            tint = DarkGreen,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable { viewModel.setCameraTilt(telemetry.cameraTiltAngle - 5) }
@@ -2169,10 +2168,10 @@ private fun BottomCockpitRow(
                 Surface(
                     onClick = { viewModel.toggleAuxIrrigation() },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (telemetry.isAuxIrrigationActive) Color(0xFF3498DB).copy(alpha = 0.2f) else DarkSurfaceContainerHigh,
+                    color = if (telemetry.isAuxIrrigationActive) LocalAgriStatusColors.current.info.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(
                         1.dp,
-                        if (telemetry.isAuxIrrigationActive) Color(0xFF3498DB) else MaterialTheme.colorScheme.outline
+                        if (telemetry.isAuxIrrigationActive) LocalAgriStatusColors.current.info else MaterialTheme.colorScheme.outlineVariant
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -2186,13 +2185,13 @@ private fun BottomCockpitRow(
                         Icon(
                             imageVector = Icons.Rounded.WaterDrop,
                             contentDescription = "Irrigation",
-                            tint = if (telemetry.isAuxIrrigationActive) Color(0xFF3498DB) else Color.LightGray,
+                            tint = if (telemetry.isAuxIrrigationActive) LocalAgriStatusColors.current.info else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = if (telemetry.isAuxIrrigationActive) "IRR: ON" else "IRR: OFF",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (telemetry.isAuxIrrigationActive) Color(0xFF3498DB) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (telemetry.isAuxIrrigationActive) LocalAgriStatusColors.current.info else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -2203,10 +2202,10 @@ private fun BottomCockpitRow(
                 Surface(
                     onClick = { viewModel.toggleSpray() },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (telemetry.isSprayActive) FreshLeaf.copy(alpha = 0.2f) else DarkSurfaceContainerHigh,
+                    color = if (telemetry.isSprayActive) LightLime else MaterialTheme.colorScheme.surfaceVariant,
                     border = BorderStroke(
                         1.dp,
-                        if (telemetry.isSprayActive) FreshLeaf else MaterialTheme.colorScheme.outline
+                        if (telemetry.isSprayActive) DarkGreen else MaterialTheme.colorScheme.outlineVariant
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -2220,13 +2219,13 @@ private fun BottomCockpitRow(
                         Icon(
                             imageVector = Icons.Rounded.Build,
                             contentDescription = "Spray",
-                            tint = if (telemetry.isSprayActive) FreshLeaf else Color.LightGray,
+                            tint = if (telemetry.isSprayActive) DarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = if (telemetry.isSprayActive) "SPY: ON" else "SPY: OFF",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (telemetry.isSprayActive) FreshLeaf else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (telemetry.isSprayActive) DarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )

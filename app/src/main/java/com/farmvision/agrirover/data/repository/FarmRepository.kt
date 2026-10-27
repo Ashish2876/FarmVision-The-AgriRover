@@ -25,6 +25,7 @@ import com.farmvision.agrirover.ui.rover.controller.JoystickMath
 import com.farmvision.agrirover.ui.rover.controller.JoystickVector
 import com.farmvision.agrirover.domain.model.farm.PlantHealthStatus
 import com.farmvision.agrirover.domain.repository.FarmManagementRepository
+import com.farmvision.agrirover.domain.repository.TelemetryHistoryRepository
 import com.farmvision.agrirover.data.repository.InMemoryFarmManagementRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +50,9 @@ interface FarmRepository : TelemetrySource, CommandSink {
 
     /** Agricultural farm, plot, and planting single source of truth. */
     val farmManagement: FarmManagementRepository
+
+    /** Historical telemetry repository boundary. */
+    val telemetryHistory: TelemetryHistoryRepository
 
     /** Reactive stream of crop/plant profiles. */
     val plantsFlow: StateFlow<List<PlantItem>>
@@ -76,7 +80,8 @@ interface FarmRepository : TelemetrySource, CommandSink {
 class MockFarmRepository(
     val timeProvider: TimeProvider = SystemTimeProvider(),
     override val hardwareCatalog: HardwareCatalogSource = StaticHardwareCatalogSource(),
-    override val farmManagement: FarmManagementRepository = InMemoryFarmManagementRepository(timeProvider = timeProvider)
+    override val farmManagement: FarmManagementRepository = InMemoryFarmManagementRepository(timeProvider = timeProvider),
+    override val telemetryHistory: TelemetryHistoryRepository = InMemoryTelemetryHistoryRepository()
 ) : FarmRepository {
 
     private val initialPlants = listOf(

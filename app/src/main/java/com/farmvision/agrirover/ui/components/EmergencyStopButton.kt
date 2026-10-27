@@ -105,11 +105,14 @@ fun EmergencyStopButton(
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(DarkSurfaceVariant, DarkBackground)
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.surface
+                        )
                     )
                 )
                 .border(
-                    BorderStroke(2.dp, if (isEngaged) Color(0xFF555555) else StatusAlert.copy(alpha = 0.8f)),
+                    BorderStroke(2.dp, if (isEngaged) MaterialTheme.colorScheme.outline else StatusAlert.copy(alpha = 0.8f)),
                     CircleShape
                 )
         ) {

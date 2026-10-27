@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.farmvision.agrirover.data.analytics.LiveTelemetryIngestor
+import com.farmvision.agrirover.domain.repository.TelemetryHistoryRepository
 
 /**
  * UI State for the Hardware Center screen and connection settings.
@@ -49,7 +51,8 @@ class HardwareCenterViewModel(
     private val settingsRepository: HardwareSettingsRepository,
     private val connectionTester: ConnectionTester = DefaultConnectionTester(),
     private val protocolClient: RoverProtocolClient = RoverProtocolClient(),
-    private val externalScope: kotlinx.coroutines.CoroutineScope? = null
+    private val externalScope: kotlinx.coroutines.CoroutineScope? = null,
+    private val telemetryHistoryRepository: TelemetryHistoryRepository? = null
 ) : ViewModel() {
 
     private val scope: kotlinx.coroutines.CoroutineScope
@@ -213,7 +216,11 @@ class HardwareCenterViewModel(
                 val baseItems = if (state.items.isEmpty()) HardwareUiDataMapper.createUiItems(false) else state.items
                 val updatedItems = telemetryResult.fold(
                     onSuccess = { packet ->
-                        HardwareUiDataMapper.updateWithLiveTelemetry(baseItems, packet, System.currentTimeMillis())
+                        val receiptTime = System.currentTimeMillis()
+                        telemetryHistoryRepository?.let { historyRepo ->
+                            LiveTelemetryIngestor.ingestPacket(packet, historyRepo, receiptTime)
+                        }
+                        HardwareUiDataMapper.updateWithLiveTelemetry(baseItems, packet, receiptTime)
                     },
                     onFailure = { error ->
                         HardwareUiDataMapper.markLiveTelemetryDisconnected(baseItems, error.message ?: "Connection failed")

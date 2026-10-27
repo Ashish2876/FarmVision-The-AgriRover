@@ -31,15 +31,18 @@ fun GlassmorphicCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(20.dp),
     borderWidth: Dp = 1.dp,
-    borderColor: Color = BorderSubtleDark,
-    backgroundColors: List<Color> = listOf(
-        DarkSurface,
-        DarkSurfaceVariant.copy(alpha = 0.85f)
-    ),
-    elevation: Dp = 4.dp,
+    borderColor: Color = Color.Unspecified,
+    backgroundColors: List<Color>? = null,
+    elevation: Dp = 1.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val resolvedBorder = if (borderColor != Color.Unspecified) borderColor else MaterialTheme.colorScheme.outlineVariant
+    val resolvedBackground = backgroundColors ?: listOf(
+        MaterialTheme.colorScheme.surface,
+        MaterialTheme.colorScheme.surface
+    )
+
     val clickableModifier = if (onClick != null) {
         Modifier.clickable(onClick = onClick)
     } else {
@@ -51,10 +54,10 @@ fun GlassmorphicCard(
             .shadow(elevation, shape, clip = false)
             .clip(shape)
             .background(
-                brush = Brush.verticalGradient(colors = backgroundColors)
+                brush = Brush.verticalGradient(colors = resolvedBackground)
             )
             .border(
-                border = BorderStroke(borderWidth, borderColor),
+                border = BorderStroke(borderWidth, resolvedBorder),
                 shape = shape
             )
             .then(clickableModifier)

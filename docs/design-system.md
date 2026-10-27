@@ -1,6 +1,6 @@
 # FarmVision AgriRover — Design System & Visual Specification
 
-**Document Version:** 2.0.0 (Phase 2 Baseline)  
+**Document Version:** 3.0.0 (Parrot Green + Premium White Redesign)
 **System Name:** AgriVision Design System  
 **Framework:** Jetpack Compose (Material 3)  
 **Package:** `com.farmvision.agrirover.core.designsystem`  
@@ -34,39 +34,67 @@ The AgriVision design system combines precision agricultural robotics engineerin
 
 ## 2. Color Palette & Semantic Tokens
 
-### 2.1 Core Brand Tokens
+### 2.1 Core Redesign Brand Tokens (Parrot Green + Pure White)
 
 | Token Name | Hex Code | Visual Sample | Semantic Purpose |
 | :--- | :--- | :---: | :--- |
-| `DeepForest` | `#123B2A` | `■` | Primary brand anchor, dark container backgrounds, brand hero cards |
-| `PrimaryGreen` | `#218C5B` | `■` | Interactive triggers, verified indicators, dark theme primary highlights |
-| `LightPrimaryGreen`| `#176840` | `■` | Light theme primary container, tuned for 6.34:1 contrast on WarmOffWhite |
-| `FreshLeaf` | `#62C985` | `■` | Dark theme primary container, active readings, 9.1:1 contrast on DarkBackground |
-| `MintAccent` | `#A8E6C1` | `■` | Fine borders, glowing radar indicators, tactical badge text |
-| `WarmOffWhite` | `#F5F8F3` | `■` | Light theme background, neutral high-contrast canvas |
-| `DarkBackground` | `#0B1410` | `■` | Deep obsidian backdrop, maximizes outdoor OLED contrast and battery life |
-| `DarkSurface` | `#14221B` | `■` | Elevated cards, dialog surfaces, control module backdrops |
-| `DarkSurfaceVariant`| `#1C2E25` | `■` | Secondary cards, subtle nested containers, disabled chip bases |
-| `DarkSurfaceHigh` | `#243B30` | `■` | High-emphasis cards, header bars, floating toolbars |
+| `ParrotGreen` | `#78E000` | `■` | Primary action fills, hero header accent, selected indicators, speed gauge peak |
+| `ParrotGreenDeep` | `#3CB300` | `■` | Pressed/hover fills, active joystick knob gradient, tractor chassis accent |
+| `DarkGreen` | `#287A20` | `■` | Green text/icons on white/lime, focus rings, selected chip borders ($\ge 4.5:1$ AA) |
+| `LightLime` | `#D4F8A8` | `■` | Selected surface containers, navigation pill indicators, secondary tactile buttons |
+| `PaleGreen` | `#EFFBE8` | `■` | Secondary background, selected card surface highlight |
+| `PureWhite` | `#FFFFFF` | `■` | Content cards, sheets, dialogs, bottom navigation bar |
+| `SoftWhite` | `#F7FBF4` | `■` | App background canvas (anti-glare outdoor readable baseline) |
+| `TextPrimary` | `#1B2E1B` | `■` | Headings and high-contrast body (8.57:1 on ParrotGreen, 14.45:1 on PureWhite) |
+| `TextSecondary` | `#5C6B5C` | `■` | Supporting text, captions, timestamps (5.66:1 on PureWhite) |
+| `BorderSubtle` | `#DDE8D5` | `■` | Thin card borders, dividers, unselected chip outlines |
+
+### 2.2 Semantic Status Tokens (`LocalAgriStatusColors`)
+
+| Status State | Light Mode Token | Dark Mode Token | WCAG Ratio (on White) | Semantic Rule |
+| :--- | :--- | :--- | :---: | :--- |
+| `Online / Success` | `#1B7A43` | `#34D399` | **5.37 : 1 (AA)** | Real hardware heartbeat verified only |
+| `Warning` | `#945200` | `#FBBF24` | **6.06 : 1 (AA)** | Stale telemetry, degraded link, uncalibrated |
+| `Error / Alert` | `#BA2518` | `#F87171` | **6.24 : 1 (AA)** | Fault condition, packet loss, hardware failure |
+| `Info / Connecting` | `#1B5E8A` | `#60A5FA` | **6.97 : 1 (AA)** | Handshake in progress, sync active |
+| `Demo / Simulated` | `#6C3483` | `#C39BD3` | **6.40 : 1 (AA)** | Simulated data stream (never styled green) |
 
 ---
 
 ## 3. WCAG 2.1 Contrast Ratio Measurements
 
-Automated verification was conducted using the W3C WCAG 2.1 relative luminance calculation algorithm (implemented in `ContrastCalculator.kt` and asserted in `ContrastUnitTest.kt`).
+Automated verification is enforced via `ContrastUnitTest.kt` and `BaselineUnitTest.kt` using the standard W3C WCAG 2.1 relative luminance algorithm:
 
 | Contrast Pair | Foreground | Background | Measured Ratio | WCAG Compliance |
 | :--- | :--- | :--- | :---: | :---: |
-| **Dark Theme Body Text** | `DarkThemeText (#E8F1EB)` | `DarkBackground (#0B1410)` | **16.24 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Dark Theme Card Body** | `DarkThemeText (#E8F1EB)` | `DarkSurface (#14221B)` | **14.29 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Dark Theme Muted Text** | `TextMutedDark (#9EB4A7)` | `DarkBackground (#0B1410)` | **8.50 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Dark Theme Primary Button**| `DarkBackground (#0B1410)` | `FreshLeaf (#62C985)` | **9.10 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Dark Theme Online Status** | `StatusOnline (#2ECC71)` | `DarkBackground (#0B1410)` | **8.91 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Light Theme Body Text** | `PrimaryTextLight (#17231C)`| `WarmOffWhite (#F5F8F3)` | **15.15 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Light Theme Card Body** | `PrimaryTextLight (#17231C)`| `LightSurface (#FFFFFF)` | **16.23 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Light Theme Muted Text**| `TextMutedLight (#43584C)` | `WarmOffWhite (#F5F8F3)` | **7.16 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
-| **Light Theme Primary Button**| `WarmOffWhite (#F5F8F3)` | `LightPrimaryGreen (#176840)`| **6.34 : 1** | **WCAG AA** ($\ge 4.5:1$) |
-| **Light Theme Online Status**| `LightAgriStatus.online (#1B7A43)`| `WarmOffWhite (#F5F8F3)` | **5.01 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Primary Button Text** | `TextPrimary (#1B2E1B)` | `ParrotGreen (#78E000)` | **8.57 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
+| **Body Headings on White** | `TextPrimary (#1B2E1B)` | `PureWhite (#FFFFFF)` | **14.45 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
+| **Body Headings on Canvas** | `TextPrimary (#1B2E1B)` | `SoftWhite (#F7FBF4)` | **13.80 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
+| **Secondary Text on White** | `TextSecondary (#5C6B5C)` | `PureWhite (#FFFFFF)` | **5.66 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Secondary Text on Canvas**| `TextSecondary (#5C6B5C)` | `SoftWhite (#F7FBF4)` | **5.40 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Green Text on Pure White**| `DarkGreen (#287A20)` | `PureWhite (#FFFFFF)` | **5.39 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Green Text on Pale Green**| `DarkGreen (#287A20)` | `PaleGreen (#EFFBE8)` | **5.04 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Green Text on Light Lime**| `DarkGreen (#287A20)` | `LightLime (#D4F8A8)` | **4.79 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Online Status on White** | `StatusOnline (#1B7A43)` | `PureWhite (#FFFFFF)` | **5.37 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Warning Status on White** | `StatusWarning (#945200)` | `PureWhite (#FFFFFF)` | **6.06 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Alert Status on White** | `StatusAlert (#BA2518)` | `PureWhite (#FFFFFF)` | **6.24 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Info Status on White** | `StatusInfo (#1B5E8A)` | `PureWhite (#FFFFFF)` | **6.97 : 1** | **WCAG AA** ($\ge 4.5:1$) |
+| **Dark Theme Body Text** | `DarkThemeText (#F2F8F1)` | `DarkBackground (#0D1710)` | **16.92 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
+| **Dark Theme Primary Button**| `TextPrimary (#1B2E1B)` | `ParrotGreen (#78E000)` | **8.57 : 1** | **WCAG AAA** ($\ge 7.0:1$) |
+
+> [!CAUTION]
+> **Contrast Guardrail**: Bright Parrot Green (`#78E000`) on white or light surfaces has a contrast ratio of only **1.69 : 1** and fails WCAG AA by a wide margin. Therefore, text or icons on white/light surfaces MUST use `DarkGreen (#287A20)` (5.39:1). Text on Parrot Green fills MUST use `TextPrimary (#1B2E1B)` (8.57:1).
+
+### 3.1 Chart Series Visual Rules
+- **Probe 1 (Primary Series)**: `ChartSeriesPrimary` (`DarkGreen #287A20`), solid 3dp stroke, solid circular data nodes.
+- **Probe 2 (Secondary Series)**: `ChartSeriesSecondary` (`Amber #D97706`), dashed 3dp stroke (`12f, 8f`), circular data nodes.
+- **Probe 3 (Tertiary Series)**: `ChartSeriesTertiary` (`Blue #2563EB`), dotted stroke.
+- **Gridlines**: `MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)`, 1dp stroke.
+- **Gap Invariant**: Telemetry gaps (`isGap = true` or `avg == null`) explicitly break the Canvas path; never interpolate or draw across missing data.
+
+### 3.2 Safety & Integrity Invariants
+- **Emergency Stop Safety Core**: The E-Stop strike button and cutoff banners remain prominently **RED** (`#BA2518` / `#C0392B`), paired with clear icon and text. It is NEVER styled in green.
+- **Simulation Honesty**: `DEMO`, `SIMULATED`, `STALE`, and `UNCALIBRATED` chips retain distinctive amber/purple tokens and are never styled in brand parrot green.
 
 ---
 

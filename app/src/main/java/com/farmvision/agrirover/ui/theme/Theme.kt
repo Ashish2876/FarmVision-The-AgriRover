@@ -18,20 +18,20 @@ import androidx.core.view.WindowCompat
 // ============================================================================
 
 private val DarkColorScheme = darkColorScheme(
-    primary = FreshLeaf,
-    onPrimary = DarkBackground,
-    primaryContainer = DeepForest,
-    onPrimaryContainer = MintAccent,
+    primary = ParrotGreen,
+    onPrimary = TextPrimary,
+    primaryContainer = DarkSurfaceVariant,
+    onPrimaryContainer = LightLime,
 
-    secondary = MintAccent,
-    onSecondary = DarkBackground,
-    secondaryContainer = DarkSurfaceVariant,
+    secondary = LightLime,
+    onSecondary = TextPrimary,
+    secondaryContainer = DarkSurfaceHigh,
     onSecondaryContainer = DarkThemeText,
 
-    tertiary = PrimaryGreen,
-    onTertiary = DarkBackground,
-    tertiaryContainer = DarkSurfaceContainerHigh,
-    onTertiaryContainer = MintAccent,
+    tertiary = ParrotGreenDeep,
+    onTertiary = TextPrimary,
+    tertiaryContainer = DarkSurfaceHigh,
+    onTertiaryContainer = LightLime,
 
     background = DarkBackground,
     onBackground = DarkThemeText,
@@ -44,48 +44,49 @@ private val DarkColorScheme = darkColorScheme(
     outline = BorderSubtleDark,
     outlineVariant = BorderAccentDark,
 
-    error = StatusAlert,
+    error = Color(0xFFF87171),
     onError = DarkBackground
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LightPrimaryGreen,
-    onPrimary = WarmOffWhite,
-    primaryContainer = MintAccent,
-    onPrimaryContainer = DeepForest,
+    primary = ParrotGreen,
+    onPrimary = TextPrimary,
+    primaryContainer = LightLime,
+    onPrimaryContainer = DarkGreen,
 
-    secondary = DeepForest,
-    onSecondary = WarmOffWhite,
-    secondaryContainer = Color(0xFFE2EDE5),
-    onSecondaryContainer = DeepForest,
+    secondary = DarkGreen,
+    onSecondary = PureWhite,
+    secondaryContainer = PaleGreen,
+    onSecondaryContainer = DarkGreen,
 
-    tertiary = FreshLeaf,
-    onTertiary = DarkBackground,
-    tertiaryContainer = Color(0xFFC7EBD4),
-    onTertiaryContainer = DeepForest,
+    tertiary = ParrotGreenDeep,
+    onTertiary = TextPrimary,
+    tertiaryContainer = LightLime,
+    onTertiaryContainer = DarkGreen,
 
-    background = WarmOffWhite,
-    onBackground = PrimaryTextLight,
+    background = SoftWhite,
+    onBackground = TextPrimary,
 
-    surface = LightSurface,
-    onSurface = PrimaryTextLight,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = TextMutedLight,
+    surface = PureWhite,
+    onSurface = TextPrimary,
+    surfaceVariant = PaleGreen,
+    onSurfaceVariant = TextSecondary,
 
-    outline = BorderSubtleLight,
-    outlineVariant = BorderAccentLight,
+    outline = BorderSubtle,
+    outlineVariant = Color(0xFFC5D4BD),
 
     error = Color(0xFFBA2518),
-    onError = WarmOffWhite
+    onError = PureWhite
 )
 
 @Composable
 fun FarmVisionTheme(
-    darkTheme: Boolean = true, // Default to futuristic dark mode for high-tech rover aesthetic
+    darkTheme: Boolean = false, // Default to fresh vibrant Parrot Green + Pure White light aesthetic
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val statusColors = if (darkTheme) DarkAgriStatusColors else LightAgriStatusColors
+    val chartColors = DefaultChartSeriesColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -93,7 +94,7 @@ fun FarmVisionTheme(
             val window = (view.context as? Activity)?.window
             if (window != null) {
                 window.statusBarColor = colorScheme.background.toArgb()
-                window.navigationBarColor = colorScheme.background.toArgb()
+                window.navigationBarColor = (if (darkTheme) colorScheme.background else PureWhite).toArgb()
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController.isAppearanceLightStatusBars = !darkTheme
                 insetsController.isAppearanceLightNavigationBars = !darkTheme
@@ -102,7 +103,8 @@ fun FarmVisionTheme(
     }
 
     CompositionLocalProvider(
-        LocalAgriStatusColors provides statusColors
+        LocalAgriStatusColors provides statusColors,
+        LocalChartSeriesColors provides chartColors
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

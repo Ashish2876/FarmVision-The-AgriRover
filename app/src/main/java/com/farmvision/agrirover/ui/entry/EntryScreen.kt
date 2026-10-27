@@ -44,18 +44,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.farmvision.agrirover.R
-import com.farmvision.agrirover.ui.theme.BorderAccentDark
-import com.farmvision.agrirover.ui.theme.BorderSubtleDark
-import com.farmvision.agrirover.ui.theme.DarkBackground
-import com.farmvision.agrirover.ui.theme.DarkSurface
-import com.farmvision.agrirover.ui.theme.DarkSurfaceVariant
-import com.farmvision.agrirover.ui.theme.DeepForest
+import com.farmvision.agrirover.ui.theme.DarkGreen
 import com.farmvision.agrirover.ui.theme.FarmVisionTheme
-import com.farmvision.agrirover.ui.theme.FreshLeaf
-import com.farmvision.agrirover.ui.theme.MintAccent
-import com.farmvision.agrirover.ui.theme.PrimaryGreen
+import com.farmvision.agrirover.ui.theme.ParrotGreenDeep
+import com.farmvision.agrirover.ui.theme.PureWhite
 import com.farmvision.agrirover.ui.theme.StatusOnline
-import com.farmvision.agrirover.ui.theme.TextMutedDark
 import com.farmvision.agrirover.ui.debug.DebugShowcaseLauncher
 
 /**
@@ -73,15 +66,7 @@ fun EntryScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        DarkBackground,
-                        Color(0xFF0F1E17),
-                        DarkBackground
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Column(
@@ -118,7 +103,7 @@ fun EntryScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 4.sp,
-                    color = FreshLeaf
+                    color = DarkGreen
                 )
             }
 
@@ -127,7 +112,7 @@ fun EntryScreen(
             Text(
                 text = stringResource(R.string.tagline),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextMutedDark,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
@@ -162,12 +147,12 @@ fun EntryScreen(
             Text(
                 text = "Ashish2876 / FarmVision-The-AgriRover",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextMutedDark.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
             Text(
                 text = "Phase 2 Active • Hardware & ESP32 Integration Deferred to Post-App Milestones",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextMutedDark.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
             )
         }
@@ -177,9 +162,9 @@ fun EntryScreen(
 @Composable
 private fun PhaseBadge() {
     Surface(
-        color = DarkSurfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(50),
-        border = androidx.compose.foundation.BorderStroke(1.dp, BorderAccentDark)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -197,7 +182,7 @@ private fun PhaseBadge() {
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,
-                color = MintAccent
+                color = DarkGreen
             )
         }
     }
@@ -213,15 +198,15 @@ private fun BrandEmblem() {
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        DeepForest,
-                        Color(0xFF0F261B)
+                        DarkGreen,
+                        ParrotGreenDeep
                     )
                 )
             )
             .border(
                 width = 1.5.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(FreshLeaf, BorderSubtleDark)
+                    colors = listOf(DarkGreen, MaterialTheme.colorScheme.outlineVariant)
                 ),
                 shape = RoundedCornerShape(28.dp)
             )
@@ -229,7 +214,7 @@ private fun BrandEmblem() {
         Icon(
             imageVector = Icons.Rounded.Agriculture,
             contentDescription = "FarmVision AgriRover Logo",
-            tint = MintAccent,
+            tint = PureWhite,
             modifier = Modifier.size(52.dp)
         )
     }
@@ -240,8 +225,8 @@ private fun TechnicalBaselineCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtleDark)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(20.dp)
@@ -252,7 +237,7 @@ private fun TechnicalBaselineCard() {
                 Icon(
                     imageVector = Icons.Rounded.Terminal,
                     contentDescription = null,
-                    tint = FreshLeaf,
+                    tint = DarkGreen,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -300,7 +285,7 @@ private fun BaselineRow(
         Icon(
             imageVector = Icons.Rounded.CheckCircle,
             contentDescription = "Verified",
-            tint = PrimaryGreen,
+            tint = DarkGreen,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -314,7 +299,7 @@ private fun BaselineRow(
             Text(
                 text = detail,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextMutedDark
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -325,8 +310,8 @@ private fun RoadmapStatusCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtleDark)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(18.dp)
@@ -335,13 +320,13 @@ private fun RoadmapStatusCard() {
                 text = "Roadmap Status & Scope Boundary",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MintAccent
+                color = DarkGreen
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Phase 1 establishes the verified Android foundation, version catalog, design tokens, and documentation. Features including full navigation, rover controls, sensor monitoring, and hardware telemetry belong to subsequent phases.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextMutedDark,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
             )
         }

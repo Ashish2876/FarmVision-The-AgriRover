@@ -65,7 +65,7 @@ class FarmVisionAppTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("nav_analytics").assertIsSelected()
         composeTestRule.onNodeWithText("Field Analytics").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Soil Moisture History (%)").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("metric_chip_soil_moisture_p1_raw").assertIsDisplayed()
 
         // 5. Navigate to Settings via testTag
         composeTestRule.onNodeWithTag("nav_settings").performClick()

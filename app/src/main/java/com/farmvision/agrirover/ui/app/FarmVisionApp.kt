@@ -130,7 +130,7 @@ fun FarmVisionApp(
             if (!isHardwareCenterOpen) {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                    tonalElevation = 3.dp
                 ) {
                     FarmVisionDestination.entries.forEach { destination ->
                         val isSelected = currentDestination == destination
@@ -157,7 +157,7 @@ fun FarmVisionApp(
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.secondary,
                                 indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
