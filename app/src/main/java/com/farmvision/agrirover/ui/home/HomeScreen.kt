@@ -1,5 +1,6 @@
 package com.farmvision.agrirover.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -109,7 +110,10 @@ fun HomeScreen(
     onNavigateToRover: () -> Unit,
     onNavigateToFarm: () -> Unit,
     modifier: Modifier = Modifier,
-    onNavigateToHardwareCenter: (() -> Unit)? = null
+    onNavigateToHardwareCenter: (() -> Unit)? = null,
+    onNavigateToAlertCenter: (() -> Unit)? = null,
+    onNavigateToDeviceManagement: (() -> Unit)? = null,
+    onNavigateToAssistant: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -138,8 +142,15 @@ fun HomeScreen(
             HomeTopBar(
                 alertCount = alerts.size,
                 onRefresh = { viewModel.refreshTelemetry() },
-                onNotificationClick = { viewModel.setNotificationSheetOpen(true) },
-                onHardwareCenterClick = onNavigateToHardwareCenter
+                onNotificationClick = {
+                    if (onNavigateToAlertCenter != null) {
+                        onNavigateToAlertCenter()
+                    } else {
+                        viewModel.setNotificationSheetOpen(true)
+                    }
+                },
+                onHardwareCenterClick = onNavigateToHardwareCenter,
+                onDeviceManagementClick = onNavigateToDeviceManagement
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
@@ -154,7 +165,13 @@ fun HomeScreen(
             // 3. Phase 5: Recent Alerts Ticker
             AlertsTickerBar(
                 alerts = alerts,
-                onOpenSheet = { viewModel.setNotificationSheetOpen(true) }
+                onOpenSheet = {
+                    if (onNavigateToAlertCenter != null) {
+                        onNavigateToAlertCenter()
+                    } else {
+                        viewModel.setNotificationSheetOpen(true)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
@@ -197,6 +214,14 @@ fun HomeScreen(
                 telemetry = telemetry,
                 settings = settings
             )
+
+            // Phase 12: Intelligent AI Agriculture Assistant Card
+            if (onNavigateToAssistant != null) {
+                Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
+                AssistantDashboardCard(
+                    onOpenAssistant = onNavigateToAssistant
+                )
+            }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
 
@@ -885,7 +910,8 @@ private fun HomeTopBar(
     alertCount: Int,
     onRefresh: () -> Unit,
     onNotificationClick: () -> Unit,
-    onHardwareCenterClick: (() -> Unit)? = null
+    onHardwareCenterClick: (() -> Unit)? = null,
+    onDeviceManagementClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -926,6 +952,13 @@ private fun HomeTopBar(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onDeviceManagementClick != null) {
+                FarmVisionIconButton(
+                    icon = Icons.Rounded.Radar,
+                    contentDescription = "Device Management",
+                    onClick = onDeviceManagementClick
+                )
+            }
             if (onHardwareCenterClick != null) {
                 FarmVisionIconButton(
                     icon = Icons.Rounded.DeveloperBoard,
@@ -1143,6 +1176,80 @@ private fun AlertItemCard(alert: FarmAlert) {
                 text = alert.timestamp,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+
+/**
+ * Phase 12: AI Agriculture Assistant Dashboard Card.
+ */
+@Composable
+fun AssistantDashboardCard(
+    onOpenAssistant: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onOpenAssistant,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        border = BorderStroke(1.dp, ParrotGreen.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ParrotGreen.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🌱", fontSize = 22.sp)
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "AI Agriculture Assistant",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(ParrotGreen.copy(alpha = 0.2f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "NEW",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = DarkGreen,
+                                fontSize = 9.sp
+                            )
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Ask questions on crop health, soil moisture readings & alerts",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = "Open Assistant",
+                tint = ParrotGreen,
+                modifier = Modifier.size(24.dp)
             )
         }
     }

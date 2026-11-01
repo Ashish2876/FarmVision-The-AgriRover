@@ -193,3 +193,55 @@ data class HistoricalSeries(
     val trend: TrendSummary,
     val totalValidSamples: List<TelemetrySample>
 )
+
+/**
+ * Rule-based abnormal reading classifications adhering strictly to Default D13.
+ * Neutral descriptive classifications only (no disease, crop, or AI wording).
+ */
+enum class AbnormalReadingSource(val label: String) {
+    ValidationExclusion("Excluded by validation"),
+    ConfiguredThresholdBreach("Outside configured threshold"),
+    SuddenChange("Sudden rate of change")
+}
+
+/**
+ * Detailed flag for a single unusual reading identified by documented deterministic rules.
+ */
+data class AbnormalReadingFlag(
+    val sampleId: String,
+    val metric: HistoricalMetric,
+    val timestampEpochMillis: Long,
+    val value: Float,
+    val source: AbnormalReadingSource,
+    val description: String
+)
+
+/**
+ * Encapsulated summary of unusual and excluded readings for the current metric & range.
+ */
+data class AbnormalReadingsSummary(
+    val totalExcludedCount: Int = 0,
+    val thresholdBreachCount: Int = 0,
+    val suddenChangeCount: Int = 0,
+    val flags: List<AbnormalReadingFlag> = emptyList()
+) {
+    val totalUnusualCount: Int
+        get() = totalExcludedCount + thresholdBreachCount + suddenChangeCount
+
+    val hasUnusualReadings: Boolean
+        get() = totalUnusualCount > 0
+}
+
+/**
+ * Overview telemetry metrics across all monitored sensors for the selected range (Section 7).
+ */
+data class AnalyticsOverviewMetrics(
+    val probe1RawAvg: Float? = null,
+    val probe2RawAvg: Float? = null,
+    val airTempAvg: Float? = null,
+    val humidityAvg: Float? = null,
+    val soilPhAvg: Float? = null,
+    val totalSamplesCount: Int = 0,
+    val latestTimestampEpochMillis: Long? = null,
+    val sourceTag: String = "DEMO"
+)

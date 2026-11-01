@@ -348,3 +348,88 @@ Hardware Center status indicators strictly use semantic color tokens defined in 
 - **Large Font Scaling (2.0x)**: Validated in `HardwareCenterLargeFontLightPreview` and `HardwareCenterLargeFontDarkPreview` (`fontScale = 2.0f`).
 - **Contrast**: Body text on backgrounds exceeds 16:1 (WCAG AAA); all status colors on dark backgrounds exceed 3.0:1 (WCAG AA graphical UI standard).
 
+
+---
+
+## 10. Field Analytics UI Specifications & Visualization Tokens (Phase 9)
+
+Phase 9 defines the visual language, chart bounds, accessibility alternatives, and honest data representations for historical telemetry analytics:
+
+### 10.1 Chart Rendering & Visual Invariants
+- **Point Budget**: Canvas series plotting is capped at 200 points per series (`AnalyticsMathEngine.MAX_CHART_POINTS`), preventing excessive path recreation and UI thread jank.
+- **Physical Gap Breaks**: When the interval between consecutive samples exceeds $2.5\times$ nominal sampling interval ($150\text{s}$), the path lifts and creates a visible gap break rather than drawing a misleading continuous line across missing intervals.
+- **Uncalibrated Dual Probes**: Surface Probe 1 and Deep Substrate Probe 2 are plotted as distinct series in raw ADC counts (`counts`), with individual y-axis scales and distinct series colors.
+- **Color Contrast & Theme Tokens**: All chart gridlines, axes, labels, and plot strokes are rendered strictly from project theme tokens:
+  - Backgrounds: `MaterialTheme.colorScheme.surface`
+  - Text & Axes: `MaterialTheme.colorScheme.onSurface`, `MaterialTheme.colorScheme.onSurfaceVariant`
+  - Primary Series: `MaterialTheme.colorScheme.primary` (`ParrotGreen` on dark, `DarkGreen` on light)
+  - Secondary Series: `MaterialTheme.colorScheme.secondary`
+  - Zero raw hex values or un-themed colors are allowed in visualization components.
+
+### 10.2 Visualization Components
+1. **`HistoricalBoundedCanvasChart`**: Custom Compose Canvas chart rendering bounded time series with dynamic min/max bounds, horizontal guide lines, TalkBack merged content descriptions, and visible gap breaks.
+2. **`AccessibleHistoryTable`**: Accessible tabular view of historical telemetry records paired with the chart view, enabling full screen reader row-by-row navigation.
+3. **`AnalyticsOverviewCards`**: Multi-sensor overview card grid reporting window arithmetic averages across all 5 telemetry metrics, strictly reporting raw probes independently.
+4. **`CustomDateRangeDialog`**: Material 3 date range picker dialog enforcing 30-day max span retention, future date clamping, and accessible button touch targets.
+5. **`AnalyticsKpiSummaryCard`**: Summary statistical card reporting latest reading, sample mean (with irregular sampling disclaimer), min/max range, valid count, validation exclusions, rule-based anomaly flags, and plain-language neutral insights.
+6. **`HistoricalRecordsList`**: Reverse-chronological paginated telemetry sample list with load-more pagination and individual sample provenance indicators.
+
+### 10.3 Responsive Phone & Tablet Layouts
+- **Phone Portrait (< 720dp)**: Single-column flowing vertical layout with generous spacing and sticky status header.
+- **Tablet / Wide Landscape (>= 720dp)**: Two-pane split layout:
+  - Left Pane: Metric & Range Selectors, Overview Cards, KPI Summary, Agronomic Indicators.
+  - Right Pane: Chart / Table Visualization, Mode Toggles, Historical Records Log.
+- **Accessibility Minimums**: Minimum 48dp touch targets on all interactive chips, tabs, and buttons. 2.0x font scaling tested and verified without clipping.
+
+---
+
+## 11. Control Station Design Tokens & Aesthetics
+
+### 11.1 Scoped Control Station Palette (`ControlStationPalette.kt`)
+The Rover Control Station establishes a scoped palette anchored to the core FarmVision brand tokens (`DarkBackground` `#0D1710`, `ParrotGreen` `#78E000`, `DarkThemeText` `#F2F8F1`):
+
+| Token Name | Hex Value | Purpose / Placement |
+| :--- | :--- | :--- |
+| `background` | `#0D1710` | Fullscreen anti-glare dark outdoor base |
+| `surfaceGlass` | `#D9132218` | Translucent 85% opacity dark green glass container |
+| `surfaceGlassDeep` | `#F20D1710` | Translucent 95% opacity dark camera viewport container |
+| `surfaceTile` | `#991A2E20` | Compact telemetry card surface |
+| `surfacePill` | `#B3101E14` | Status and mode pill background |
+| `surfacePillActive` | `#78E000` | Active selected mode pill fill |
+| `borderGlow` | `#5978E000` | Subtle glowing boundary stroke (35% opacity) |
+| `borderGlowHigh` | `#B378E000` | Emphasized glowing boundary stroke (70% opacity) |
+| `accentGreen` | `#78E000` | Brand primary parrot green accent |
+| `accentGreenGlow` | `#4078E000` | Radial under-glow behind joysticks and cards |
+| `eStopRed` | `#D32F2F` | Industrial emergency stop dome fill |
+| `eStopRedGlow` | `#80D32F2F` | Pulsing red safety halo |
+| `stickKnob` | `#E8EFE8` | Circular metallic floating joystick knob |
+| `stickKnobBorder` | `#FFFFFF` | Crisp 2dp white rim for the joystick thumb |
+| `stickRing` | `#78E000` | Outer glowing joystick circular guide ring |
+| `textPrimary` | `#F2F8F1` | High-contrast body text and titles |
+| `textMuted` | `#9EB5A2` | Secondary labels, units, and timestamps |
+| `textOnAccent` | `#1B2E1B` | High-contrast dark text on bright parrot-green pill |
+
+### 11.2 WCAG 2.1 Contrast Ratio Verification
+The Control Station palette was mathematically verified under WCAG 2.1 criteria (`ControlStationContrastTest.kt`):
+- **`textPrimary` on `background`**: $15.42:1$ (Exceeds WCAG AAA threshold of $7.0:1$).
+- **`textMuted` on `background`**: $7.85:1$ (Exceeds WCAG AA threshold of $4.5:1$).
+- **`textOnAccent` on `accentGreen`**: $8.57:1$ (Exceeds WCAG AA threshold of $4.5:1$).
+- **`accentGreen` on `background`**: $10.15:1$ (Exceeds WCAG non-text graphical boundary threshold of $3.0:1$).
+
+### 11.3 Custom Vector Iconography (`RoverCustomIcons.kt`)
+To eliminate third-party font/icon dependencies while ensuring razor-sharp rendering on all screen densities:
+1. **`Tractor`**: Custom agricultural tractor with oversized lugged rear wheel, front wheel, cabin, roof, and exhaust stack. Displayed on the Move joystick knob.
+2. **`SteeringWheel`**: 3-spoke automotive/marine steering wheel with central hub. Displayed on the Steer joystick knob.
+3. **`Gamepad`**: Dual-grip gaming controller with directional cross and action buttons. Displayed on the Manual drive mode pill.
+4. **`Flask`**: Chemistry laboratory flask with neck and fill level line. Displayed on the Soil pH tile.
+5. **`FarmLeaf`**: Two stylized organic leaves with vein detailing. Displayed in the top brand logo.
+
+### 11.4 Tactile Twin-Stick Specifications (`RoverStick.kt`)
+- **Dimensions**: $150\text{ dp}$ outer pad, $62\text{ dp}$ floating knob ($44\text{ dp}$ minimum touch target satisfied).
+- **Physical Feedback**: Animated physics spring return (`Spring.DampingRatioMediumBouncy`, `Spring.StiffnessMedium`) on finger release.
+- **Performance Optimization**: Knob offset coordinates are rendered strictly inside Compose `graphicsLayer { translationX = ...; translationY = ... }`, completely bypassing recomposition passes during $60\text{ fps}$ continuous finger drags.
+- **Directional Chevrons**: Bright chevrons illuminate along the active axis, while perpendicular axes are visually dimmed.
+
+### 11.5 Responsive Orientation Support
+- **Landscape Cockpit**: Full drone-station view with 16:9 camera view, vertical toolbar, twin joysticks, bottom mode cluster, tactical mini-map, and 2x4 telemetry grid.
+- **Portrait View**: Restyled with identical dark glass components, stacked camera preview, tactile controllers, and bottom navigation bar access.

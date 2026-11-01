@@ -176,29 +176,65 @@ The FarmVision AgriRover platform is executed in five discrete, sequential stage
 
 ---
 
-### Phase 9: Analytics and History
-- **Status:** PLANNED
-- **Objective:** Historical trend visualization and field analytics.
-- **Expected Deliverables:**
-  - Time-series charts (Soil moisture over 24h/7d/30d, battery discharge efficiency).
-  - Aggregated statistics: Total area scanned, average soil moisture per plot, operational runtime.
-  - Export telemetry report (CSV / JSON summary).
-- **Dependencies:** Phase 8 (Sensor telemetry) & Phase 7 (Plant records).
-- **Acceptance Criteria:** Charts render efficiently without blocking main thread; responsive zoom/pan.
-- **Evidence:** Benchmark test measuring frame render times during historical data loads.
+### Phase 9: Analytics and Telemetry History
+- **Status:** **COMPLETED (Phase 9 Verified)**
+- **Historical Roadmap Quote:**
+  > "### Phase 9: Analytics and History
+  > - **Status:** PLANNED
+  > - **Objective:** Historical trend visualization and field analytics.
+  > - **Expected Deliverables:**
+  >   - Time-series charts (Soil moisture over 24h/7d/30d, battery discharge efficiency).
+  >   - Aggregated statistics: Total area scanned, average soil moisture per plot, operational runtime.
+  >   - Export telemetry report (CSV / JSON summary).
+  > - **Dependencies:** Phase 8 (Sensor telemetry) & Phase 7 (Plant records).
+  > - **Acceptance Criteria:** Charts render efficiently without blocking main thread; responsive zoom/pan.
+  > - **Evidence:** Benchmark test measuring frame render times during historical data loads."
+- **Execution Scope & Architectural Reality:**
+  - **Pipeline Preservation:** Preserved direct Wi-Fi SoftAP HTTP pipeline (`192.168.4.1`) to the ESP32 rover. Backend integration (FastAPI / external database / Retrofit) is marked pending / NOT APPLICABLE this phase.
+  - **Roadmap Discrepancies & Deferred Deliverables:**
+    - Battery discharge efficiency curve: Deferred (requires physical discharge cycle logging and calibrated battery model not present on rover).
+    - Total area scanned & operational runtime: Deferred (requires hardware wheel odometry and active session logging not available in firmware telemetry).
+    - Telemetry report export (CSV/JSON): Deferred to avoid unverified external file writes or third-party serialization libraries.
+  - **Implemented Deliverables:**
+    - **Durable Local Storage:** Production-wired `JsonFileTelemetryHistoryRepository` (`telemetry_history.json`) storing live hardware telemetry samples across application process restarts with 30-day retention and 60-second per-metric write throttling.
+    - **Multi-Window Analytics:** Rolling windows (`1h`, `6h`, `24h`, `7d`, `30d`) and Material 3 `CustomDateRangeDialog` with 30-day max span enforcement and future date clamping.
+    - **Bounded Canvas Charting:** Pure Compose `HistoricalBoundedCanvasChart` capped at 200 points per series, preserving physical data gaps ($>2.5\times$ expected interval) as line breaks.
+    - **Dual Raw ADC Probes:** Surface (Probe 1) and Deep (Probe 2) capacitive soil moisture probes plotted as independent raw 12-bit ADC counts (0–4095); never averaged or converted to percentage.
+    - **Accessible Table Alternative:** `AccessibleHistoryTable` toggleable alongside charts, with TalkBack semantic descriptions and 48dp touch targets.
+    - **Multi-Sensor Overview Averages:** `AnalyticsOverviewCards` displaying honest arithmetic averages across all 5 monitored metrics with provenance labels.
+    - **Rule-Based Anomaly Detection:** 3 rule-based anomaly flag sources (validation exclusions, configured threshold breaches, sudden change continuity flags) and plain-language neutral insights.
+- **Dependencies:** Phase 4 (Domain models), Phase 7 (Atomic JSON persistence pattern), Phase 8 (Live telemetry ingestor & network pipeline).
+- **Acceptance Criteria:** Survives application restart; honest provenance labeling (Demo vs Live Hardware); gaps drawn as breaks; dual probes never averaged; zero new dependencies; 100% test pass rate.
+- **Evidence:** Automated JVM unit tests passing offline (`.\gradlew.bat --offline testDebugUnitTest`), verified restart durability in `TelemetryHistoryRepositoryContractTest`, successful debug APK build (`assembleDebug`).
 
 ---
 
-### Phase 10: Alerts and Notifications
-- **Status:** PLANNED
-- **Objective:** Real-time alert dispatching, notification management, and customizable agricultural threshold rules.
-- **Expected Deliverables:**
-  - Alert inbox with severity badges (Critical, Warning, Advisory).
-  - In-app toast/banner alerts for urgent hardware events (e.g., Obstacle detected < 30cm).
-  - Push notification integration using Android NotificationManager with high-priority channels.
-- **Dependencies:** Phase 4 (Domain events) & Phase 3 (Navigation).
-- **Acceptance Criteria:** Critical alerts play distinct audio/vibration pattern; acknowledge/dismiss state persisted.
-- **Evidence:** Unit tests verifying notification channel creation and threshold trigger logic.
+### Phase 10: Intelligent Alert and Notification Management
+- **Status:** **COMPLETED (Phase 10 Verified)**
+- **Historical Roadmap Quote:**
+  > "### Phase 10: Alerts and Notifications
+  > - **Status:** PLANNED
+  > - **Objective:** Real-time alert dispatching, notification management, and customizable agricultural threshold rules.
+  > - **Expected Deliverables:**
+  >   - Alert inbox with severity badges (Critical, Warning, Advisory).
+  >   - In-app toast/banner alerts for urgent hardware events (e.g., Obstacle detected < 30cm).
+  >   - Push notification integration using Android NotificationManager with high-priority channels.
+  > - **Dependencies:** Phase 4 (Domain events) and Phase 3 (Navigation).
+  > - **Acceptance Criteria:** Critical alerts play distinct audio/vibration pattern; acknowledge/dismiss state persisted.
+  > - **Evidence:** Unit tests verifying notification channel creation and threshold trigger logic."
+- **Execution Scope and Architectural Reality:**
+  - **Zero-Actuator Invariant:** Alert processing operates strictly as a read-only monitoring and notification system. Alert rules and lifecycle transitions never issue motor, steering, braking, or actuator commands.
+  - **Telemetry Honesty:** In LIVE mode, raw soil moisture ADC readings (0-4095 counts) are strictly never converted to uncalibrated moisture percentages; Soil pH threshold alerts are suppressed with an explicit UNCALIBRATED SENSOR advisory; Unsupported sensors (battery voltage, GPS fix, motor temperature) display "Unavailable" and never raise false alerts. DEMO mode alerts carry visible SIM badges.
+- **Implemented Deliverables:**
+  - **Domain Models and Severity Hierarchy:** Typed `AlertCategory`, `AlertSeverity` (`Critical`, `Warning`, `Information`), `AlertStatus`, `DataQualityState`, and deterministic composite deduplication keys (`category:ruleId:sourceId:origin`).
+  - **Pure Evaluation Engine and Debounce:** Framework-independent `AlertEngine` with N-count debounce confirmation (default 3 cycles) and directional hysteresis recovery margins.
+  - **Data Quality and Saturation Validation:** `DataQualityValidator` verifying live electrical margins (<= 50 or >= 4050 counts) and classifying readings (`Valid`, `Missing`, `Invalid`, `Stale`, `Uncalibrated`).
+  - **Durable Atomic Storage:** `JsonFileAlertRepository` with atomic file replacement (`.tmp` to `.json`), 30-day/500-record bounded retention pruning, and `.bak` corruption recovery.
+  - **Notification Infrastructure:** `AlertNotificationManager` with 3 Android notification channels (`Critical`, `Warning`, `Information`), repeat cooldown throttling (5m critical, 15m warning), and `FLAG_IMMUTABLE` deep-link PendingIntents into the Alert Centre.
+  - **Alert Centre and Settings UI:** Unified `AlertCenterScreen` (search, severity pills, category filters, tabs), `AlertDetailsScreen` (audit provenance, lifecycle history), `AlertSettingsScreen` (threshold tuning with validation), and `AlertHistoryScreen`.
+- **Dependencies:** Phase 4 (Domain models), Phase 8 (Telemetry pipeline), Phase 9 (Persistent storage pattern).
+- **Acceptance Criteria:** All alerts categorized with honest provenance; strict read-only evaluation; 100% test pass rate.
+- **Evidence:** 273 automated unit tests passing (0 failures, 0 errors), clean debug APK assembled, verified on emulator.
 
 ---
 

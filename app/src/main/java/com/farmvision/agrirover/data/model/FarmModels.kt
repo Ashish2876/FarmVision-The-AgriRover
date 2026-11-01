@@ -46,9 +46,12 @@ enum class SpeedUnit(val symbol: String, val label: String) {
  * Time ranges for historical telemetry analytics.
  */
 enum class AnalyticsTimeRange(val label: String, val durationMillis: Long) {
+    Hours1("1 Hour", 1L * 60 * 60 * 1000),
+    Hours6("6 Hours", 6L * 60 * 60 * 1000),
     Hours24("24 Hours", 24L * 60 * 60 * 1000),
     Days7("7 Days", 7L * 24 * 60 * 60 * 1000),
-    Days30("30 Days", 30L * 24 * 60 * 60 * 1000);
+    Days30("30 Days", 30L * 24 * 60 * 60 * 1000),
+    Custom("Custom", 0L);
 
     /**
      * Calculates rolling window [nowEpochMillis - durationMillis, nowEpochMillis], both ends inclusive.

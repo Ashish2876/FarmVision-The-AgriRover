@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +33,7 @@ import com.farmvision.agrirover.core.designsystem.component.FarmVisionCard
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusBadge
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
+import com.farmvision.agrirover.data.model.AbnormalReadingsSummary
 import com.farmvision.agrirover.data.model.HistoricalMetric
 import com.farmvision.agrirover.data.model.HistoricalTrendDirection
 import com.farmvision.agrirover.data.model.TelemetryStatistics
@@ -50,6 +51,8 @@ import java.util.Locale
  * - Arithmetic sample mean with honest disclaimer.
  * - Minimum, Maximum, and Valid reading count.
  * - Excluded readings count when non-zero.
+ * - Rule-based abnormal reading flags (validation exclusions, threshold breaches, sudden changes).
+ * - Plain-language neutral insights (no agricultural diagnoses or crop advice).
  * - Factual trend observation with icon + text (never color alone).
  */
 @Composable
@@ -58,6 +61,7 @@ fun AnalyticsKpiSummaryCard(
     statistics: TelemetryStatistics,
     trend: TrendSummary,
     provenanceLabel: String,
+    abnormalSummary: AbnormalReadingsSummary = AbnormalReadingsSummary(),
     modifier: Modifier = Modifier
 ) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm", Locale.getDefault())
@@ -180,10 +184,133 @@ fun AnalyticsKpiSummaryCard(
             }
         }
 
+        // Rule-Based Abnormal Readings Notice (Default D13)
+        if (abnormalSummary.flags.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+            AbnormalReadingsBox(abnormalSummary = abnormalSummary)
+        }
+
         Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
         // Factual Trend Observation (Section 7 & Default D8: never color alone)
         TrendObservationBox(trend = trend)
+
+        Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+
+        // Plain-Language Neutral Insight (Section 7 & Default D13)
+        PlainLanguageInsightBox(
+            metric = metric,
+            hasAbnormalFlags = abnormalSummary.flags.isNotEmpty(),
+            sampleCount = statistics.count
+        )
+    }
+}
+
+@Composable
+private fun AbnormalReadingsBox(
+    abnormalSummary: AbnormalReadingsSummary,
+    modifier: Modifier = Modifier
+) {
+    val statusColors = LocalAgriStatusColors.current
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = statusColors.warning.copy(alpha = 0.12f),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("abnormal_readings_notice")
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = "Abnormal telemetry detected",
+                    tint = statusColors.warning,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Rule-Based Anomaly Flags (${abnormalSummary.flags.size})",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColors.warning
+                )
+            }
+
+            if (abnormalSummary.thresholdBreachCount > 0) {
+                Text(
+                    text = "• ${abnormalSummary.thresholdBreachCount} readings breached configured operational limits.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (abnormalSummary.suddenChangeCount > 0) {
+                Text(
+                    text = "• ${abnormalSummary.suddenChangeCount} readings exhibited sudden jumps between consecutive intervals.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlainLanguageInsightBox(
+    metric: HistoricalMetric,
+    hasAbnormalFlags: Boolean,
+    sampleCount: Int,
+    modifier: Modifier = Modifier
+) {
+    val insightText = when {
+        metric.isRaw ->
+            "Raw capacitive probe readings require soil-specific calibration to convert ADC counts to volumetric water content. Values represent uncalibrated voltage measurements."
+        hasAbnormalFlags ->
+            "Rule-based telemetry notice: readings outside configured operational bounds or rapid deltas were detected. Inspect sensor hardware and local environmental conditions."
+        sampleCount > 0 ->
+            "All analyzed telemetry samples remain within configured operational and physical bounds for this window."
+        else ->
+            "No telemetry records available in the selected time window."
+    }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("plain_language_insight_box")
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Column {
+                Text(
+                    text = "Operational Observation",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = insightText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     }
 }
 

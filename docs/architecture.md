@@ -377,3 +377,199 @@ The Hardware Center presents the 23-item hardware inventory without synthetic cl
   - 188 JVM unit tests passing offline across 20 test classes.
   - 22/22 connected Android instrumented tests passing on Android Emulator.
   - Automated contract compatibility test suite (`FirmwareContractCompatibilityTest`) enforcing byte-for-byte schema and pin alignment between firmware and Android client.
+
+---
+
+## 13. Phase 9 — Advanced Analytics & Telemetry History Architecture
+
+Phase 9 establishes the telemetry history recording, pure-domain mathematics engine, and bounded visualization architecture for the FarmVision AgriRover.
+
+### 13.1 Actual Data Pipeline Reality
+- **Network Pipeline**: The Android application communicates directly with the rover via direct Wi-Fi SoftAP HTTP (`http://192.168.4.1:80`).
+- **Backend Clarification**: No external FastAPI server, cloud database, or Retrofit network layer exists in the source. Backend integration is pending and marked NOT APPLICABLE for Phase 9.
+- **Telemetry Ingestion Path**:
+  `ESP32 HTTP Telemetry -> RoverProtocolClient -> LiveTelemetryIngestor -> JsonFileTelemetryHistoryRepository`
+
+### 13.2 Durable Local Telemetry History (`JsonFileTelemetryHistoryRepository`)
+- **Persistence Pattern**: Production-wired repository backed by a local JSON file (`telemetry_history.json`) stored in the application's private files directory (`context.filesDir`).
+- **Crash & Restart Durability**: Implements serialized atomic file writes (`.tmp` file replacement and `fd.sync()`) ensuring telemetry history survives application force-stop and process restart without data corruption.
+- **Retention Policy**: Strictly enforces a 30-day retention window ($30 \times 86,400,000\text{ ms}$). Samples older than 30 days are automatically pruned upon serialization.
+- **Write-Rate Throttling**: Throttles disk writes to at most 1 sample per metric every 60 seconds (Default D4), preventing excessive flash wear while preserving temporal granularity.
+- **Provenance Separation**: Telemetry records are tagged with immutable `DataOrigin` (`Simulated` vs `LiveHardware`). Demo and live hardware records are stored and queried independently, never merged into a single metric series.
+
+### 13.3 Pure Domain Mathematics Engine (`AnalyticsMathEngine`)
+- **Zero Android Runtime Dependencies**: `AnalyticsMathEngine` is a pure Kotlin singleton operating exclusively on immutable domain models, guaranteeing deterministic JVM unit testability.
+- **Time Model**:
+  - Rolling windows: 1 Hour, 6 Hours, 24 Hours, 7 Days, 30 Days calculated as $[\text{now} - \text{duration}, \text{now}]$, both ends inclusive.
+  - Custom windows: Constructed via `createCustomWindow(start, end, now)` with future-timestamp clamping and a maximum span cap of 30 days.
+- **Honest Statistics**:
+  - Sample Mean: Computed strictly as an arithmetic sample mean over valid samples only:
+    $$\bar{x} = \frac{1}{N} \sum_{i=1}^N x_i$$
+    Disclaimed as potentially biased when sampling intervals are irregular.
+  - Range & Count: Minimum, maximum, and exact valid sample count.
+  - Excluded Samples: Out-of-range, saturated ADC counts ($\le 50$ or $\ge 4050$), and clock drift anomalies ($>30\text{s}$ future tolerance) are tracked and disclaimed, never converted to zero or "normal".
+- **Physical Gap Detection & Line Breaks**:
+  - Gaps exceeding $2.5\times$ the nominal sampling interval ($2.5 \times 60\text{s} = 150\text{s}$) are flagged with `isGapBreak = true`.
+  - Charts draw line breaks across gaps rather than interpolating synthetic lines across missing intervals.
+- **Least-Squares Linear Trend**:
+  - Fitted using least-squares linear regression:
+    $$\beta = \frac{\sum (t_i - \bar{t})(y_i - \bar{y})}{\sum (t_i - \bar{t})^2}$$
+  - Trend direction is classified into `Rising`, `Falling`, or `Steady` (within a $\pm 5\%$ deadband around zero). Requires a minimum of 3 valid samples and at least 10 minutes time span.
+
+### 13.4 Rule-Based Abnormal Reading Detection (Default D13)
+- Evaluates 3 non-speculative, deterministic rule sources:
+  1. **Validation Exclusions**: Count of discarded out-of-range or saturated counts.
+  2. **Configured Threshold Breaches**: Evaluated for calibrated metrics only (never uncalibrated raw probes):
+     - Air Temperature: $<10.0^\circ\text{C}$ or $>40.0^\circ\text{C}$
+     - Relative Humidity: $<30.0\%$ or $>85.0\%$
+     - Soil pH: $<5.5$ or $>7.5$
+     - Sonar Obstacle Distance: $<30.0\text{ cm}$
+  3. **Sudden Change Flags**: Detects unphysical jumps between consecutive readings within a continuity window ($10\times$ sample interval):
+     - Air Temp delta $>5.0^\circ\text{C}$
+     - Humidity delta $>15.0\%$
+     - Soil pH delta $>1.0$
+     - Raw ADC Probes delta $>500\text{ counts}$
+- **Plain-Language Neutral Insights**: Factual observations only. Never fabricates crop diagnoses, pest advice, yield predictions, or irrigation commands.
+
+### 13.5 Uncalibrated Dual-Probe Soil Moisture Architecture
+- Surface Probe 1 (depth ~5cm) and Deep Substrate Probe 2 (depth ~15cm) are plotted as independent series of 12-bit raw ADC counts ($0\text{--}4095$).
+- Probes are strictly never averaged together or mathematically converted to synthetic soil moisture percentages without field soil calibration.
+
+---
+
+## 14. Rover Controller Station UI Redesign Architecture
+
+### 14.1 Architectural Overview
+The Rover Controller Station has been redesigned into a commercial drone-style agricultural robotics station matching the reference cockpit. The design prioritizes tactile precision, high-contrast outdoor visibility (WCAG 2.1 AA/AAA), truth-in-telemetry, and strict adherence to established safety invariants.
+
+```
++--------------------------------------------------------------------------------------------------------------------+
+| RoverTopBar (Exit, FarmVision AgriRover logo, 5 Truthful Status Pills, Settings, Fullscreen)                       |
++----+-----------------------------------------------------------------------------------------+---------------------+
+|    | Center Viewport Zone:                                                                   | Right Side Panel:   |
+| T  |  +-----------------------------------------------------------------------------------+  |  +----------------+ |
+| o  |  | Camera Viewport (Sunset sky, crop rows, focus reticle, Camera dropdown, Sim badge)|  |  | Tactical Mini-  | |
+| o  |  |                                                                                   |  |  | Map Card       | |
+| l  |  |                                                                                   |  |  +----------------+ |
+| b  |  |                                                                                   |  |                     |
+| a  |  |                                                                                   |  |  +----------------+ |
+| r  |  |                                                                                   |  |  | TelemetryTile  | |
+|    |  |                                                                                   |  |  | Grid (2x4)     | |
+|    |  +-----------------------------------------------------------------------------------+  |  | More Telemetry | |
+|    |                                                                                         |  |  +----------------+ |
+|    |  Bottom Overlays / Controls:                                                            |                     |
+|    |  Left: Move Stick (Y-only) | Center Cluster: Mode Pills + Speed / E-Stop / Cam | Right: Steer Stick (X-only)   |
++----+-----------------------------------------------------------------------------------------+---------------------+
+```
+
+### 14.2 Pure Twin-Stick Mathematical Mapping (`TwinStickMapper.kt`)
+- **Axis Isolation**:
+  - **Move Stick**: Restricted strictly to the vertical Y axis (Throttle: $+Y = 	ext{Forward}$, $-Y = 	ext{Reverse}$).
+  - **Steer Stick**: Restricted strictly to the horizontal X axis (Steering: $+X = 	ext{Turn Right}$, $-X = 	ext{Turn Left}$).
+- **Dead-Zone Rescaling**:
+  - Independent $0.08$ scalar dead zone applied to each axis. Sub-threshold finger jitter is suppressed to $0.0f$.
+  - Continuous piecewise rescaling: $	ext{adjusted} = 	ext{sign}(v) 	imes rac{|v| - 	ext{deadZone}}{1.0 - 	ext{deadZone}}$, ensuring smooth takeoff without deadband jumps.
+- **Pivot Turn Lockout (Safety Default D2)**:
+  - If $	ext{throttle} == 0.0$, steering alone produces `JoystickVector.NEUTRAL`. Prevents unintended in-place skid-steer tearing of crop roots in narrow agricultural rows.
+- **Unit Magnitude Clamping**:
+  - Combined vector $(X, Y)$ is clamped within the unit circle: $\|\mathbf{v}\| \le 1.0$.
+
+### 14.3 Truthful HUD Telemetry Formatting (`RoverHudPresenter.kt`)
+- **Battery Honesty**: Firmware lacks battery voltage/percentage sensing. In **LIVE Hardware mode**, the battery tile displays `Unavailable` (`No Sensor`). In **DEMO mode**, simulated battery percentage carries an explicit `[SIM]` designation.
+- **Distance Honesty**: Firmware lacks wheel encoders and visual odometry. In **LIVE mode**, distance displays `Unavailable`. In **DEMO mode**, displays `12.6 m [SIM]`.
+- **Speed**: Scaled to user speed preference (Metric km/h or Imperial mph) based on active software speed preset duty cycle $	imes$ joystick magnitude.
+- **Sensor Probes**: Soil moisture is flagged as raw ADC counts in Live mode; Soil pH is marked as uncalibrated.
+
+### 14.4 Responsive Multi-Orientation Lifecycle & Immersive Display
+- **Orientation Lock Removal**: Uncommitted draft's hardcoded `ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE` lock was removed. The application responds dynamically to physical device rotation between landscape cockpit and portrait overview.
+- **System Insets & Immersive Mode**: In landscape, system bars are hidden using `WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` and `FLAG_KEEP_SCREEN_ON` is set. In portrait, standard status bars and bottom navigation remain fully accessible.
+- **Failsafe Neutral Emission**: `LifecycleEventObserver` catches `ON_PAUSE` or `ON_STOP` events and dispatches neutral velocity to prevent runaway rover states.
+
+### 14.5 High-Priority Industrial Emergency Stop & Latch Protocol
+- **Pointer-Down Activation**: Evaluated on `awaitFirstDown()`, guaranteeing zero release latency or click lag.
+- **Hardware Cutoff Latched**: Disables joystick inputs, activates red pulsing visual state, and surfaces the `POWER CUTOFF ENGAGED` banner with the deliberate `RE-ARM ROVER` button (`rover_ctrl_rearm`).
+- **Coexistence with Directional Pad**: Users can toggle between Twin-Stick Mode and Directional D-Pad Mode on the left zone for accessibility or fine discrete maneuvering.
+
+
+---
+
+## 15. Phase 10: Intelligent Alert & Notification Management Architecture
+
+### 15.1 Architectural Overview & Data Flow
+Phase 10 introduces a modular, deterministic, and reactive alert management pipeline to the FarmVision AgriRover system. The alert system evaluates incoming rover telemetry and sensor streams against configurable thresholds, confirms breaches across debounce cycles, maintains persistent historical audit records, and dispatches actionable system notifications.
+
+```
+                      +-----------------------------+
+                      | RoverTelemetry & Sensors    |
+                      +--------------+--------------+
+                                     |
+                                     v
+                      +-----------------------------+
+                      |    DataQualityValidator     |  --> [Classifies Valid, Missing, Invalid,
+                      +--------------+--------------+      Stale, Uncalibrated; Checks Saturation]
+                                     |
+                                     v
+                      +-----------------------------+
+                      |         AlertEngine         |  --> [Threshold checks, Debounce confirmation,
+                      +--------------+--------------+      Hysteresis clearance, Strict Read-Only]
+                                     |
+                                     v
+                      +-----------------------------+
+                      |    AlertLifecycleManager    |  --> [Deduplication, Repeat counts,
+                      +--------------+--------------+      Auto-resolution, Acknowledgements]
+                                     |
+                     +---------------+---------------+
+                     |                               |
+                     v                               v
+      +-----------------------------+ +-----------------------------+
+      |  JsonFileAlertRepository    | |   AlertNotificationManager  |
+      |  - Atomic file writes (.tmp)| |   - Critical / Warning Ch.  |
+      |  - 30-day / 500-record cap  | |   - Cooldown throttling     |
+      |  - .bak corruption recovery | |   - Deep-link PendingIntent |
+      +-----------------------------+ +-----------------------------+
+                     |                               |
+                     +---------------+---------------+
+                                     |
+                                     v
+                      +-----------------------------+
+                      | FarmViewModel / AlertViewM. |
+                      +--------------+--------------+
+                                     |
+             +-----------------------+-----------------------+
+             |                       |                       |
+             v                       v                       v
+    AlertCenterScreen       AlertDetailsScreen      AlertSettingsScreen
+```
+
+### 15.2 Domain Models & Severity Hierarchy
+- **Categories**: `Safety`, `Connectivity`, `Hardware`, `Agronomic`, `System`.
+- **Severities**:
+  - `Critical`: Immediate physical intervention required (E-Stop engaged, telemetry link lost, obstacle $< 10\text{ cm}$). Dispatched with high-priority audible/vibrating alerts.
+  - `Warning`: Operating parameter outside nominal range but within safety tolerance (moderate obstacle $< 20\text{ cm}$, temperature/humidity stress, degraded link).
+  - `Information`: State recovery notices, sensor advisories, calibration notices.
+- **Deduplication Key**: MD5-free deterministic composite hash `category:ruleId:sourceId:origin` guaranteeing deduplication across repeated evaluation cycles.
+
+### 15.3 Rule-Based Evaluation Engine & Hysteresis
+- **Debounce Confirmation**: Breaches require $N$ consecutive occurrences (default $N=3$ cycles) before firing an alert, filtering transient electrical glitches.
+- **Hysteresis Recovery Margins**: Resolution requires telemetry to clear thresholds beyond an intentional hysteresis band (e.g. $1.0^\circ\text{C}$ for temperature, $2.0\%$ for humidity, $5\text{ cm}$ for sonar), preventing rapid alert-recovery flapping.
+- **Zero-Actuator Invariant**: Alert processing is strictly read-only. Alert transitions never dispatch motor, steering, braking, or actuator commands.
+
+### 15.4 Data Quality Validation & Telemetry Honesty
+- **Soil Moisture**: Live hardware probe reads are 12-bit raw ADC counts ($0\text{--}4095$) and are strictly never displayed as calibrated moisture percentages. Saturation checks flag values $\le 50$ (short circuit margin) or $\ge 4050$ (open circuit margin).
+- **Soil pH**: In LIVE mode, numeric agronomic alerts are suppressed with an explicit `UNCALIBRATED SENSOR` advisory until field calibration is established. DEMO mode generates simulated alerts stamped with `[SIM]`.
+- **Unsupported Hardware Sensors**: Battery voltage, GPS fix, and motor temperature are verified as absent from physical telemetry and remain in `Unavailable` state without false alerts.
+
+### 15.5 Persistent Repository & Bounded Retention
+- **Atomic Persistence**: Active and resolved alerts are serialized to JSON and committed using an atomic file replacement scheme (`alerts_history.json.tmp` $\to$ `alerts_history.json`) with `.bak` recovery on malformed payloads.
+- **Retention Policy**: Bounded to a maximum of 500 total records and a 30-day time window. Oldest acknowledged and resolved alerts are pruned first.
+
+### 15.6 Notification Architecture & Android Channels
+- **Notification Channels**:
+  - `farmvision_alerts_critical`: High importance, vibration, sound, bypasses Do-Not-Disturb when configured.
+  - `farmvision_alerts_warning`: Default importance, sound.
+  - `farmvision_alerts_info`: Low importance, silent shade notification.
+- **Cooldown Throttling**: Critical alerts enforce a minimum 5-minute repeat cooldown; Warning alerts enforce a 15-minute repeat cooldown.
+- **Deep Linking**: Notifications carry `FLAG_IMMUTABLE` PendingIntents routing directly into `MainActivity` with `EXTRA_DESTINATION = "alerts_centre"` and `EXTRA_ALERT_ID`.
+
+### 15.7 Android Lifecycle Limitations
+- In compliance with Android background execution limits, alert evaluation occurs while the application process is running (foreground or active service). Background monitoring does not promise unbounded execution after process termination without an active foreground service.

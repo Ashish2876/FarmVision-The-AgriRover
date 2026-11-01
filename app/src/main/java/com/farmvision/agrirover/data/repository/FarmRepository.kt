@@ -24,6 +24,7 @@ import com.farmvision.agrirover.data.model.SpeedPreset
 import com.farmvision.agrirover.ui.rover.controller.JoystickMath
 import com.farmvision.agrirover.ui.rover.controller.JoystickVector
 import com.farmvision.agrirover.domain.model.farm.PlantHealthStatus
+import com.farmvision.agrirover.domain.alert.repository.AlertRepository
 import com.farmvision.agrirover.domain.repository.FarmManagementRepository
 import com.farmvision.agrirover.domain.repository.TelemetryHistoryRepository
 import com.farmvision.agrirover.data.repository.InMemoryFarmManagementRepository
@@ -60,6 +61,9 @@ interface FarmRepository : TelemetrySource, CommandSink {
     /** Reactive stream of operational and environmental alerts. */
     val alertsFlow: StateFlow<List<FarmAlert>>
 
+    /** Device registry repository boundary for Phase 11 communication architecture. */
+    val deviceRegistry: com.farmvision.agrirover.domain.device.repository.DeviceRegistryRepository? get() = null
+
     fun getPlants(): List<PlantItem>
     fun getAlerts(): List<FarmAlert>
     fun getSensorReading(type: SensorType): SensorReading?
@@ -81,8 +85,12 @@ class MockFarmRepository(
     val timeProvider: TimeProvider = SystemTimeProvider(),
     override val hardwareCatalog: HardwareCatalogSource = StaticHardwareCatalogSource(),
     override val farmManagement: FarmManagementRepository = InMemoryFarmManagementRepository(timeProvider = timeProvider),
-    override val telemetryHistory: TelemetryHistoryRepository = InMemoryTelemetryHistoryRepository()
+    override val telemetryHistory: TelemetryHistoryRepository = InMemoryTelemetryHistoryRepository(),
+    val alertRepository: AlertRepository? = null,
+    val deviceCommunicationRepository: com.farmvision.agrirover.data.device.repository.ProductionDeviceCommunicationRepository = com.farmvision.agrirover.data.device.repository.ProductionDeviceCommunicationRepository()
 ) : FarmRepository {
+
+    override val deviceRegistry: com.farmvision.agrirover.domain.device.repository.DeviceRegistryRepository = deviceCommunicationRepository
 
     private val initialPlants = listOf(
         PlantItem(
@@ -579,6 +587,8 @@ class MockFarmRepository(
 
     override fun getSoilMoistureHistory(range: AnalyticsTimeRange): List<SensorDataPoint> {
         return when (range) {
+            AnalyticsTimeRange.Hours1,
+            AnalyticsTimeRange.Hours6,
             AnalyticsTimeRange.Hours24 -> listOf(
                 SensorDataPoint("00:00", 46.5f),
                 SensorDataPoint("04:00", 45.2f),
@@ -596,7 +606,8 @@ class MockFarmRepository(
                 SensorDataPoint("Sat", 40.5f),
                 SensorDataPoint("Sun", 42.5f)
             )
-            AnalyticsTimeRange.Days30 -> listOf(
+            AnalyticsTimeRange.Days30,
+            AnalyticsTimeRange.Custom -> listOf(
                 SensorDataPoint("W1", 49.2f),
                 SensorDataPoint("W2", 46.0f),
                 SensorDataPoint("W3", 43.5f),
@@ -608,6 +619,8 @@ class MockFarmRepository(
 
     override fun getTemperatureHistory(range: AnalyticsTimeRange, tempUnit: TemperatureUnit): List<SensorDataPoint> {
         val basePoints = when (range) {
+            AnalyticsTimeRange.Hours1,
+            AnalyticsTimeRange.Hours6,
             AnalyticsTimeRange.Hours24 -> listOf(
                 SensorDataPoint("00:00", 21.4f),
                 SensorDataPoint("04:00", 19.8f),
@@ -625,7 +638,8 @@ class MockFarmRepository(
                 SensorDataPoint("Sat", 26.5f),
                 SensorDataPoint("Sun", 26.8f)
             )
-            AnalyticsTimeRange.Days30 -> listOf(
+            AnalyticsTimeRange.Days30,
+            AnalyticsTimeRange.Custom -> listOf(
                 SensorDataPoint("W1", 23.8f),
                 SensorDataPoint("W2", 25.2f),
                 SensorDataPoint("W3", 26.4f),
@@ -641,6 +655,8 @@ class MockFarmRepository(
 
     override fun getAnalyticsKpis(range: AnalyticsTimeRange, tempUnit: TemperatureUnit): AnalyticsKpis {
         return when (range) {
+            AnalyticsTimeRange.Hours1,
+            AnalyticsTimeRange.Hours6,
             AnalyticsTimeRange.Hours24 -> {
                 val minT = tempUnit.formatValueOnly(19.8f)
                 val maxT = tempUnit.format(28.6f)
@@ -659,7 +675,8 @@ class MockFarmRepository(
                     irrigationVolume = "185.0 L"
                 )
             }
-            AnalyticsTimeRange.Days30 -> {
+            AnalyticsTimeRange.Days30,
+            AnalyticsTimeRange.Custom -> {
                 val minT = tempUnit.formatValueOnly(17.2f)
                 val maxT = tempUnit.format(31.4f)
                 AnalyticsKpis(

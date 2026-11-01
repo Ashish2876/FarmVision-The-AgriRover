@@ -56,3 +56,16 @@ google-services.json
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Python & Backend Local Files
+.venv/
+backend/.venv/
+venv/
+backend/venv/
+.pytest_cache/
+backend/.pytest_cache/
+scratch/
+
+# Temporary UI XML dumps & test screenshots
+docs/*.xml
+docs/*.png

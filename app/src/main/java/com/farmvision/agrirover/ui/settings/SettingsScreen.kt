@@ -49,7 +49,10 @@ import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
 fun SettingsScreen(
     viewModel: FarmViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToHardwareCenter: (() -> Unit)? = null
+    onNavigateToHardwareCenter: (() -> Unit)? = null,
+    onNavigateToAlertCenter: (() -> Unit)? = null,
+    onNavigateToDeviceManagement: (() -> Unit)? = null,
+    onNavigateToAiPrivacy: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val settings by viewModel.settings.collectAsState()
@@ -95,6 +98,90 @@ fun SettingsScreen(
                 message = "PREFERENCES: Settings adjustments operate locally with SharedPreferences persistence. Physical rover connection parameters will activate in Stage D."
             )
 
+            // Device and Communication Entry Card
+            FarmVisionSectionHeader(
+                title = "Device and Communication",
+                description = "Multi-transport architecture, Wi-Fi SoftAP and FastAPI Cloud"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            FarmVisionCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onNavigateToDeviceManagement?.invoke() }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Device and Transport Management",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Configure direct ESP32 SoftAP, cloud gateway, diagnostics and Keystore auth",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Open Device Management",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+
+            // Phase 12: AI Assistant Privacy Section
+            FarmVisionSectionHeader(
+                title = "AI Agriculture Assistant",
+                description = "Privacy controls, telemetry consent, and conversation management"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            FarmVisionCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onNavigateToAiPrivacy?.invoke() }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "AI Privacy & Data Controls",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Configure granular sharing for live sensors, alerts, analytics, and delete chat history",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Configure AI Privacy",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+
             // Hardware Center Entry Card
             FarmVisionSectionHeader(
                 title = "Hardware Center",
@@ -129,6 +216,48 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
                         contentDescription = "Open Hardware Center",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
+
+            // Alert Centre Entry Card
+            FarmVisionSectionHeader(
+                title = "Alerts and Notifications",
+                description = "Intelligent monitoring, threshold tuning and history"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            FarmVisionCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onNavigateToAlertCenter?.invoke() }
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Alert Centre and Threshold Settings",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Configure sensor limits, debounce counts, audit logs, and notification channels",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Open Alert Centre",
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
                     )

@@ -75,9 +75,12 @@ fun HistoricalBoundedCanvasChart(
     val chartMax = combinedMax + (rangeSpan * 0.05f)
 
     val formatter = when (timeRange) {
+        AnalyticsTimeRange.Hours1,
+        AnalyticsTimeRange.Hours6,
         AnalyticsTimeRange.Hours24 -> DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
         AnalyticsTimeRange.Days7 -> DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
-        AnalyticsTimeRange.Days30 -> DateTimeFormatter.ofPattern("MMM dd", Locale.getDefault())
+        AnalyticsTimeRange.Days30,
+        AnalyticsTimeRange.Custom -> DateTimeFormatter.ofPattern("MMM dd", Locale.getDefault())
     }
 
     val primaryColor = DarkGreen

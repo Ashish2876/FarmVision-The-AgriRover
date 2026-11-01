@@ -52,7 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
 import com.farmvision.agrirover.data.model.hardware.ControllerTarget
+import com.farmvision.agrirover.data.repository.JsonFileTelemetryHistoryRepository
 import com.farmvision.agrirover.data.repository.SharedPreferencesHardwareSettingsRepository
+import com.farmvision.agrirover.domain.repository.TelemetryHistoryRepository
 import com.farmvision.agrirover.ui.hardware.components.ControllerEndpointCard
 import com.farmvision.agrirover.ui.hardware.components.HardwareCategoryFilterBar
 import com.farmvision.agrirover.ui.hardware.components.HardwareComponentCard
@@ -71,12 +73,14 @@ import com.farmvision.agrirover.ui.theme.LocalAgriStatusColors
 fun HardwareCenterScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HardwareCenterViewModel? = null
+    viewModel: HardwareCenterViewModel? = null,
+    telemetryHistoryRepository: TelemetryHistoryRepository? = null
 ) {
     val context = LocalContext.current
     val hardwareViewModel = viewModel ?: remember {
         val repo = SharedPreferencesHardwareSettingsRepository(context)
-        HardwareCenterViewModel(settingsRepository = repo)
+        val historyRepo = telemetryHistoryRepository ?: JsonFileTelemetryHistoryRepository(context)
+        HardwareCenterViewModel(settingsRepository = repo, telemetryHistoryRepository = historyRepo)
     }
 
     val uiState by hardwareViewModel.uiState.collectAsState()

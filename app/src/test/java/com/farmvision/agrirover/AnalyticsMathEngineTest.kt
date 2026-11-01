@@ -280,4 +280,126 @@ class AnalyticsMathEngineTest {
         assertEquals(1, summerTime.offset.totalSeconds / 3600) // BST (UTC+1)
         assertEquals(0, winterTime.offset.totalSeconds / 3600) // GMT (UTC+0)
     }
+
+    @Test
+    fun testRollingWindows_allSupportedRangesIncluding1hAnd6h() {
+        val window1h = AnalyticsTimeRange.Hours1.calculateWindow(fixedNow)
+        assertEquals(3600_000L, window1h.endEpochMillis - window1h.startEpochMillis)
+        assertEquals(fixedNow, window1h.endEpochMillis)
+
+        val window6h = AnalyticsTimeRange.Hours6.calculateWindow(fixedNow)
+        assertEquals(6 * 3600_000L, window6h.endEpochMillis - window6h.startEpochMillis)
+        assertEquals(fixedNow, window6h.endEpochMillis)
+
+        val window24h = AnalyticsTimeRange.Hours24.calculateWindow(fixedNow)
+        assertEquals(24 * 3600_000L, window24h.endEpochMillis - window24h.startEpochMillis)
+
+        val window7d = AnalyticsTimeRange.Days7.calculateWindow(fixedNow)
+        assertEquals(7 * 86400_000L, window7d.endEpochMillis - window7d.startEpochMillis)
+
+        val window30d = AnalyticsTimeRange.Days30.calculateWindow(fixedNow)
+        assertEquals(30 * 86400_000L, window30d.endEpochMillis - window30d.startEpochMillis)
+    }
+
+    @Test
+    fun testCustomWindow_validationAndClamping() {
+        val now = fixedNow
+
+        // 1. End before start is rejected
+        val invalidResult = AnalyticsMathEngine.createCustomWindow(
+            startEpochMillis = now - 1000L,
+            endEpochMillis = now - 2000L,
+            nowEpochMillis = now
+        )
+        assertTrue(invalidResult.isFailure)
+
+        // 2. Future end time is clamped to now
+        val futureEndResult = AnalyticsMathEngine.createCustomWindow(
+            startEpochMillis = now - 10_000L,
+            endEpochMillis = now + 50_000L,
+            nowEpochMillis = now
+        )
+        assertTrue(futureEndResult.isSuccess)
+        val clampedWindow = futureEndResult.getOrThrow()
+        assertEquals(now, clampedWindow.endEpochMillis)
+        assertEquals(now - 10_000L, clampedWindow.startEpochMillis)
+
+        // 3. Span exceeding 30 days is capped at 30 days
+        val hugeSpanResult = AnalyticsMathEngine.createCustomWindow(
+            startEpochMillis = now - 50L * 86400_000L,
+            endEpochMillis = now,
+            nowEpochMillis = now
+        )
+        assertTrue(hugeSpanResult.isSuccess)
+        val cappedWindow = hugeSpanResult.getOrThrow()
+        assertEquals(now, cappedWindow.endEpochMillis)
+        assertEquals(now - 30L * 86400_000L, cappedWindow.startEpochMillis)
+    }
+
+    @Test
+    fun testAbnormalReadings_thresholdBreachesAndRawProbeImmunity() {
+        // Covered metric: Air temperature (breaches below 10°C or above 38°C)
+        val tempSamples = listOf(
+            TelemetrySample("t1", HistoricalMetric.AirTemperature, 8.5f, null, fixedNow - 3600_000L, DataOrigin.LiveHardware),
+            TelemetrySample("t2", HistoricalMetric.AirTemperature, 24.0f, null, fixedNow - 1800_000L, DataOrigin.LiveHardware),
+            TelemetrySample("t3", HistoricalMetric.AirTemperature, 41.2f, null, fixedNow, DataOrigin.LiveHardware)
+        )
+        val tempAbnormal = AnalyticsMathEngine.computeAbnormalReadings(tempSamples, excludedCount = 1, metric = HistoricalMetric.AirTemperature)
+        assertEquals(1, tempAbnormal.totalExcludedCount)
+        assertEquals(2, tempAbnormal.thresholdBreachCount)
+        assertEquals(0, tempAbnormal.suddenChangeCount)
+        assertEquals(2, tempAbnormal.flags.size)
+        assertTrue(tempAbnormal.flags.any { it.description.contains("below configured minimum") })
+        assertTrue(tempAbnormal.flags.any { it.description.contains("above configured maximum") })
+
+        // Raw probes invariant: Probe 1 and Probe 2 are UNCALIBRATED and must NEVER trigger threshold breaches!
+        val probeSamples = listOf(
+            TelemetrySample("p1", HistoricalMetric.SoilMoistureProbe1Raw, 1200f, 1200f, fixedNow - 2000, DataOrigin.LiveHardware),
+            TelemetrySample("p2", HistoricalMetric.SoilMoistureProbe1Raw, 3500f, 3500f, fixedNow - 1000, DataOrigin.LiveHardware)
+        )
+        val probeAbnormal = AnalyticsMathEngine.computeAbnormalReadings(probeSamples, excludedCount = 0, metric = HistoricalMetric.SoilMoistureProbe1Raw)
+        assertEquals(0, probeAbnormal.thresholdBreachCount)
+    }
+
+    @Test
+    fun testAbnormalReadings_suddenChangeDetection() {
+        val metric = HistoricalMetric.AirTemperature // limit is 5.0°C
+        val samples = listOf(
+            TelemetrySample("s1", metric, 20.0f, null, fixedNow - 120_000L, DataOrigin.LiveHardware),
+            // Sudden jump by 8.0°C in next sample
+            TelemetrySample("s2", metric, 28.0f, null, fixedNow - 60_000L, DataOrigin.LiveHardware),
+            // Normal gradual change by 0.5°C
+            TelemetrySample("s3", metric, 28.5f, null, fixedNow, DataOrigin.LiveHardware)
+        )
+
+        val abnormal = AnalyticsMathEngine.computeAbnormalReadings(samples, excludedCount = 0, metric = metric)
+        assertEquals(1, abnormal.suddenChangeCount)
+        assertEquals(1, abnormal.flags.size)
+        assertEquals("s2", abnormal.flags[0].sampleId)
+        assertEquals(com.farmvision.agrirover.data.model.AbnormalReadingSource.SuddenChange, abnormal.flags[0].source)
+        assertTrue(abnormal.flags[0].description.contains("Sudden change of 8.0 °C"))
+    }
+
+    @Test
+    fun testOverviewMetrics_probe1AndProbe2SeparateAverages() {
+        val samples = listOf(
+            TelemetrySample("p1-a", HistoricalMetric.SoilMoistureProbe1Raw, 2000f, 2000f, fixedNow - 2000L, DataOrigin.LiveHardware),
+            TelemetrySample("p1-b", HistoricalMetric.SoilMoistureProbe1Raw, 2100f, 2100f, fixedNow - 1000L, DataOrigin.LiveHardware),
+            TelemetrySample("p2-a", HistoricalMetric.SoilMoistureProbe2Raw, 1800f, 1800f, fixedNow - 2000L, DataOrigin.LiveHardware),
+            TelemetrySample("p2-b", HistoricalMetric.SoilMoistureProbe2Raw, 1900f, 1900f, fixedNow - 1000L, DataOrigin.LiveHardware),
+            TelemetrySample("t-a", HistoricalMetric.AirTemperature, 25.0f, null, fixedNow - 1000L, DataOrigin.LiveHardware),
+            TelemetrySample("h-a", HistoricalMetric.Humidity, 60.0f, null, fixedNow - 1000L, DataOrigin.LiveHardware),
+            TelemetrySample("ph-a", HistoricalMetric.SoilPh, 6.8f, null, fixedNow - 1000L, DataOrigin.LiveHardware)
+        )
+
+        val overview = AnalyticsMathEngine.computeOverviewMetrics(samples, sourceTag = "LIVE HARDWARE")
+        assertEquals(2050f, overview.probe1RawAvg!!, 0.01f)
+        assertEquals(1850f, overview.probe2RawAvg!!, 0.01f) // Separated from Probe 1!
+        assertEquals(25.0f, overview.airTempAvg!!, 0.01f)
+        assertEquals(60.0f, overview.humidityAvg!!, 0.01f)
+        assertEquals(6.8f, overview.soilPhAvg!!, 0.01f)
+        assertEquals(7, overview.totalSamplesCount)
+        assertEquals(fixedNow - 1000L, overview.latestTimestampEpochMillis)
+        assertEquals("LIVE HARDWARE", overview.sourceTag)
+    }
 }

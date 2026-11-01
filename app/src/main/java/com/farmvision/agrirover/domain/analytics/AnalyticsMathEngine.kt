@@ -1,5 +1,10 @@
 package com.farmvision.agrirover.domain.analytics
 
+import com.farmvision.agrirover.data.model.AbnormalReadingFlag
+import com.farmvision.agrirover.data.model.AbnormalReadingSource
+import com.farmvision.agrirover.data.model.AbnormalReadingsSummary
+import com.farmvision.agrirover.data.model.AnalyticsOverviewMetrics
+import com.farmvision.agrirover.data.model.AnalyticsTimeRange
 import com.farmvision.agrirover.data.model.AnalyticsTimeWindow
 import com.farmvision.agrirover.data.model.HistoricalDataBucket
 import com.farmvision.agrirover.data.model.HistoricalMetric
@@ -7,6 +12,8 @@ import com.farmvision.agrirover.data.model.HistoricalTrendDirection
 import com.farmvision.agrirover.data.model.TelemetrySample
 import com.farmvision.agrirover.data.model.TelemetryStatistics
 import com.farmvision.agrirover.data.model.TrendSummary
+import java.util.Locale
+import kotlin.math.abs
 
 /**
  * Pure Kotlin mathematics engine for historical telemetry analytics.
@@ -38,6 +45,27 @@ object AnalyticsMathEngine {
 
     /** Multiplier of expected sample interval beyond which a gap break is recognized in charts (Default D9). */
     const val GAP_THRESHOLD_MULTIPLIER = 2.5f
+
+    // --- Provisional Constants for Abnormal Readings (Default D13) ---
+    /** Configured thresholds (Phase 5 provisional rules) for covered metrics only. */
+    const val AIR_TEMP_LOW_THRESHOLD = 10.0f
+    const val AIR_TEMP_HIGH_THRESHOLD = 38.0f
+    const val HUMIDITY_LOW_THRESHOLD = 30.0f
+    const val HUMIDITY_HIGH_THRESHOLD = 85.0f
+    const val SOIL_PH_LOW_THRESHOLD = 6.0f
+    const val SOIL_PH_HIGH_THRESHOLD = 7.5f
+    const val OBSTACLE_DISTANCE_WARNING_THRESHOLD = 30.0f
+
+    /** Sudden change maximum expected delta per consecutive sample (Default D13). */
+    const val SUDDEN_CHANGE_DELTA_AIR_TEMP = 5.0f
+    const val SUDDEN_CHANGE_DELTA_HUMIDITY = 15.0f
+    const val SUDDEN_CHANGE_DELTA_SOIL_PH = 0.8f
+    const val SUDDEN_CHANGE_DELTA_OBSTACLE_DIST = 50.0f
+    const val SUDDEN_CHANGE_DELTA_PROBE1_RAW = 250.0f
+    const val SUDDEN_CHANGE_DELTA_PROBE2_RAW = 200.0f
+
+    /** Maximum span for custom time range (Default D7 & D4: capped at retention period). */
+    const val MAX_CUSTOM_RANGE_RETENTION_DAYS = 30L
 
     /**
      * Filters, deduplicates, and validates samples within a rolling time window [window.startEpochMillis, window.endEpochMillis].
@@ -279,5 +307,177 @@ object AnalyticsMathEngine {
     ): Boolean {
         val delta = currentTimestampMillis - previousTimestampMillis
         return delta > (expectedIntervalMillis * GAP_THRESHOLD_MULTIPLIER)
+    }
+
+    /**
+     * Validates and constructs a custom time window adhering to Default D7.
+     * Rules:
+     * - End time before start time is rejected with IllegalArgumentException.
+     * - Future end time is clamped to [nowEpochMillis].
+     * - Span exceeding [maxRetentionDays] is capped at the retention period (clamping start).
+     */
+    fun createCustomWindow(
+        startEpochMillis: Long,
+        endEpochMillis: Long,
+        nowEpochMillis: Long,
+        maxRetentionDays: Long = MAX_CUSTOM_RANGE_RETENTION_DAYS
+    ): Result<AnalyticsTimeWindow> {
+        if (endEpochMillis < startEpochMillis) {
+            return Result.failure(IllegalArgumentException("End time cannot be earlier than start time"))
+        }
+
+        val clampedEnd = minOf(endEpochMillis, nowEpochMillis)
+        if (clampedEnd < startEpochMillis) {
+            return Result.failure(IllegalArgumentException("Selected range is in the future"))
+        }
+
+        val maxSpanMillis = maxRetentionDays * 86_400_000L
+        val validStart = maxOf(startEpochMillis, clampedEnd - maxSpanMillis)
+
+        return Result.success(
+            AnalyticsTimeWindow(
+                range = AnalyticsTimeRange.Custom,
+                startEpochMillis = validStart,
+                endEpochMillis = clampedEnd
+            )
+        )
+    }
+
+    /**
+     * Evaluates rule-based abnormal readings adhering strictly to Default D13.
+     * Three sources:
+     * (1) Excluded by validation (counted and recorded).
+     * (2) Readings outside configured thresholds (covered metrics only, never uncalibrated raw probes).
+     * (3) Sudden change flag when adjacent valid samples differ by more than provisional constants.
+     */
+    fun computeAbnormalReadings(
+        validSamples: List<TelemetrySample>,
+        excludedCount: Int,
+        metric: HistoricalMetric
+    ): AbnormalReadingsSummary {
+        val flags = mutableListOf<AbnormalReadingFlag>()
+        var thresholdBreachCount = 0
+        var suddenChangeCount = 0
+
+        // 1. Configured Threshold Breaches (strictly never for uncalibrated raw probes)
+        if (!metric.isRaw) {
+            for (sample in validSamples) {
+                val v = sample.canonicalValue
+                val breachDesc = when (metric) {
+                    HistoricalMetric.AirTemperature -> when {
+                        v < AIR_TEMP_LOW_THRESHOLD -> "Air temperature %.1f°C below configured minimum threshold (%.1f°C)".format(Locale.US, v, AIR_TEMP_LOW_THRESHOLD)
+                        v > AIR_TEMP_HIGH_THRESHOLD -> "Air temperature %.1f°C above configured maximum threshold (%.1f°C)".format(Locale.US, v, AIR_TEMP_HIGH_THRESHOLD)
+                        else -> null
+                    }
+                    HistoricalMetric.Humidity -> when {
+                        v < HUMIDITY_LOW_THRESHOLD -> "Relative humidity %.1f%% below configured minimum threshold (%.1f%%)".format(Locale.US, v, HUMIDITY_LOW_THRESHOLD)
+                        v > HUMIDITY_HIGH_THRESHOLD -> "Relative humidity %.1f%% above configured maximum threshold (%.1f%%)".format(Locale.US, v, HUMIDITY_HIGH_THRESHOLD)
+                        else -> null
+                    }
+                    HistoricalMetric.SoilPh -> when {
+                        v < SOIL_PH_LOW_THRESHOLD -> "Soil pH %.2f below configured neutral band (%.1f)".format(Locale.US, v, SOIL_PH_LOW_THRESHOLD)
+                        v > SOIL_PH_HIGH_THRESHOLD -> "Soil pH %.2f above configured neutral band (%.1f)".format(Locale.US, v, SOIL_PH_HIGH_THRESHOLD)
+                        else -> null
+                    }
+                    HistoricalMetric.UltrasonicDistance -> when {
+                        v < OBSTACLE_DISTANCE_WARNING_THRESHOLD -> "Obstacle proximity %.1f cm within warning threshold (%.1f cm)".format(Locale.US, v, OBSTACLE_DISTANCE_WARNING_THRESHOLD)
+                        else -> null
+                    }
+                    else -> null
+                }
+
+                if (breachDesc != null) {
+                    thresholdBreachCount++
+                    flags.add(
+                        AbnormalReadingFlag(
+                            sampleId = sample.id,
+                            metric = metric,
+                            timestampEpochMillis = sample.timestampEpochMillis,
+                            value = v,
+                            source = AbnormalReadingSource.ConfiguredThresholdBreach,
+                            description = breachDesc
+                        )
+                    )
+                }
+            }
+        }
+
+        // 2. Sudden Change Flag (consecutive valid samples within reasonable continuity window)
+        val suddenDeltaThreshold = when (metric) {
+            HistoricalMetric.SoilMoistureProbe1Raw -> SUDDEN_CHANGE_DELTA_PROBE1_RAW
+            HistoricalMetric.SoilMoistureProbe2Raw -> SUDDEN_CHANGE_DELTA_PROBE2_RAW
+            HistoricalMetric.AirTemperature -> SUDDEN_CHANGE_DELTA_AIR_TEMP
+            HistoricalMetric.Humidity -> SUDDEN_CHANGE_DELTA_HUMIDITY
+            HistoricalMetric.SoilPh -> SUDDEN_CHANGE_DELTA_SOIL_PH
+            HistoricalMetric.UltrasonicDistance -> SUDDEN_CHANGE_DELTA_OBSTACLE_DIST
+        }
+
+        val sorted = validSamples.sortedBy { it.timestampEpochMillis }
+        for (i in 1 until sorted.size) {
+            val prev = sorted[i - 1]
+            val curr = sorted[i]
+            val timeDiff = curr.timestampEpochMillis - prev.timestampEpochMillis
+            if (timeDiff <= 10 * DEFAULT_SAMPLE_INTERVAL_SECONDS * 1000L) {
+                val delta = abs(curr.canonicalValue - prev.canonicalValue)
+                if (delta > suddenDeltaThreshold) {
+                    suddenChangeCount++
+                    flags.add(
+                        AbnormalReadingFlag(
+                            sampleId = curr.id,
+                            metric = metric,
+                            timestampEpochMillis = curr.timestampEpochMillis,
+                            value = curr.canonicalValue,
+                            source = AbnormalReadingSource.SuddenChange,
+                            description = "Sudden change of %.1f %s between consecutive readings (limit: %.1f %s)".format(
+                                Locale.US,
+                                delta,
+                                metric.canonicalUnit,
+                                suddenDeltaThreshold,
+                                metric.canonicalUnit
+                            )
+                        )
+                    )
+                }
+            }
+        }
+
+        return AbnormalReadingsSummary(
+            totalExcludedCount = excludedCount,
+            thresholdBreachCount = thresholdBreachCount,
+            suddenChangeCount = suddenChangeCount,
+            flags = flags
+        )
+    }
+
+    /**
+     * Computes multi-sensor overview averages for Section 7 Overview cards.
+     * Raw probes 1 and 2 are strictly averaged independently, never together.
+     */
+    fun computeOverviewMetrics(
+        allValidSamples: List<TelemetrySample>,
+        sourceTag: String
+    ): AnalyticsOverviewMetrics {
+        if (allValidSamples.isEmpty()) {
+            return AnalyticsOverviewMetrics(sourceTag = sourceTag)
+        }
+
+        fun averageFor(metric: HistoricalMetric): Float? {
+            val matching = allValidSamples.filter { it.metric == metric }
+            if (matching.isEmpty()) return null
+            return (matching.sumOf { it.canonicalValue.toDouble() } / matching.size).toFloat()
+        }
+
+        val latestTime = allValidSamples.maxOfOrNull { it.timestampEpochMillis }
+
+        return AnalyticsOverviewMetrics(
+            probe1RawAvg = averageFor(HistoricalMetric.SoilMoistureProbe1Raw),
+            probe2RawAvg = averageFor(HistoricalMetric.SoilMoistureProbe2Raw),
+            airTempAvg = averageFor(HistoricalMetric.AirTemperature),
+            humidityAvg = averageFor(HistoricalMetric.Humidity),
+            soilPhAvg = averageFor(HistoricalMetric.SoilPh),
+            totalSamplesCount = allValidSamples.size,
+            latestTimestampEpochMillis = latestTime,
+            sourceTag = sourceTag
+        )
     }
 }

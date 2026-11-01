@@ -161,4 +161,53 @@ class AnalyticsViewModelTest {
         assertEquals(HistoricalMetric.UltrasonicDistance, state.selectedMetric)
         assertEquals(HistoricalMetric.UltrasonicDistance, state.primarySeries?.metric)
     }
+
+    @Test
+    fun testCustomDateRange_setsRangeAndComputesWindow() = runBlocking {
+        val mockRepo = MockFarmRepository(timeProvider = timeProvider)
+        val viewModel = FarmViewModel(repository = mockRepo, defaultDispatcher = Dispatchers.Unconfined)
+
+        val start = fixedNow - 3_600_000L
+        val end = fixedNow
+        viewModel.setCustomDateRange(start, end)
+
+        val state = viewModel.analyticsUiState.value
+        assertEquals(AnalyticsTimeRange.Custom, state.selectedRange)
+        assertEquals(start, state.customStartEpochMillis)
+        assertEquals(end, state.customEndEpochMillis)
+        assertFalse(state.isCustomDateRangePickerOpen)
+    }
+
+    @Test
+    fun testCustomDatePickerOpen_togglesState() = runBlocking {
+        val mockRepo = MockFarmRepository(timeProvider = timeProvider)
+        val viewModel = FarmViewModel(repository = mockRepo, defaultDispatcher = Dispatchers.Unconfined)
+
+        viewModel.setCustomDatePickerOpen(true)
+        assertTrue(viewModel.analyticsUiState.value.isCustomDateRangePickerOpen)
+
+        viewModel.setCustomDatePickerOpen(false)
+        assertFalse(viewModel.analyticsUiState.value.isCustomDateRangePickerOpen)
+    }
+
+    @Test
+    fun testAbnormalReadingsAndOverviewMetrics_presentInUiState() = runBlocking {
+        val mockRepo = MockFarmRepository(timeProvider = timeProvider)
+        val viewModel = FarmViewModel(repository = mockRepo, defaultDispatcher = Dispatchers.Unconfined)
+
+        val state = viewModel.analyticsUiState.value
+        assertEquals("DEMO DATA", state.overviewMetrics.sourceTag)
+        assertNotNull(state.overviewMetrics.probe1RawAvg)
+        assertNotNull(state.overviewMetrics.probe2RawAvg)
+        assertNotNull(state.abnormalSummary)
+    }
+
+    @Test
+    fun testTelemetryConnectionStatus_updatesUiState() = runBlocking {
+        val mockRepo = MockFarmRepository(timeProvider = timeProvider)
+        val viewModel = FarmViewModel(repository = mockRepo, defaultDispatcher = Dispatchers.Unconfined)
+
+        val state = viewModel.analyticsUiState.value
+        assertEquals(mockRepo.telemetryFlow.value.connectionStatus.defaultLabel, state.connectionStatus)
+    }
 }
