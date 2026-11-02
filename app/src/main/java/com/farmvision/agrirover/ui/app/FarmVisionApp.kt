@@ -199,14 +199,22 @@ fun FarmVisionApp(
         DeviceManagementViewModel(communicationRepository = repo)
     }
 
+    val backendAssistantProvider = remember {
+        BackendAssistantProvider(baseUrl = prefs.settingsFlow.value.backendUrl)
+    }
+
     val assistantViewModel = remember(farmViewModel) {
-        val provider = BackendAssistantProvider()
         AssistantViewModel(
             repository = assistantRepo,
-            assistantProvider = provider,
+            assistantProvider = backendAssistantProvider,
             telemetryProvider = { farmViewModel.telemetry.value },
             isStaleProvider = { false }
         )
+    }
+
+    val currentSettings by prefs.settingsFlow.collectAsState()
+    LaunchedEffect(currentSettings.backendUrl) {
+        backendAssistantProvider.setBaseUrl(currentSettings.backendUrl)
     }
 
     val isNotificationSheetOpen by farmViewModel.isNotificationSheetOpen.collectAsState()

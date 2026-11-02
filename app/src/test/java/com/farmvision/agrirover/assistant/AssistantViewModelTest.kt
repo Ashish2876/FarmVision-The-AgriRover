@@ -139,4 +139,86 @@ class AssistantViewModelTest {
         assertTrue(viewModel.uiState.value.conversations.isEmpty())
         assertNull(viewModel.uiState.value.currentConversationId)
     }
+
+    @Test
+    fun `sendMessage handles QuotaExhaustedError and exposes rate limit message in uiState`() = runBlocking {
+        // Create a throwing provider
+        val throwingProvider = object : com.farmvision.agrirover.domain.assistant.provider.AssistantProvider {
+            override val providerName: String = "Test Throwing Provider"
+            override val isAvailable: Boolean = true
+            override suspend fun sendMessage(
+                conversationId: String,
+                clientMessageId: String,
+                userMessage: String,
+                context: com.farmvision.agrirover.domain.assistant.model.AssistantContext
+            ): com.farmvision.agrirover.domain.assistant.model.AssistantMessage {
+                throw com.farmvision.agrirover.domain.assistant.model.AssistantError.QuotaExhaustedError("Rate limit exceeded 429")
+            }
+        }
+
+        val testVm = AssistantViewModel(
+            repository = repository,
+            assistantProvider = throwingProvider,
+            telemetryProvider = { sampleTelemetry },
+            isStaleProvider = { false },
+            coroutineScope = CoroutineScope(Dispatchers.Unconfined)
+        )
+
+        testVm.updateConsent(AssistantConsentPreferences(consentGranted = true))
+        testVm.onInputTextChanged("Will it rain tomorrow?")
+        testVm.sendMessage()
+
+        val state = testVm.uiState.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error?.contains("Rate limit") == true)
+    }
+
+    @Test
+    fun `recovery flow - successful message after error clears error banner`() = runBlocking {
+        var shouldFail = true
+        val recoverableProvider = object : com.farmvision.agrirover.domain.assistant.provider.AssistantProvider {
+            override val providerName: String = "Recoverable Provider"
+            override val isAvailable: Boolean = true
+            override suspend fun sendMessage(
+                conversationId: String,
+                clientMessageId: String,
+                userMessage: String,
+                context: com.farmvision.agrirover.domain.assistant.model.AssistantContext
+            ): com.farmvision.agrirover.domain.assistant.model.AssistantMessage {
+                if (shouldFail) {
+                    throw com.farmvision.agrirover.domain.assistant.model.AssistantError.NetworkError("Backend offline")
+                }
+                return com.farmvision.agrirover.domain.assistant.model.AssistantMessage(
+                    conversationId = conversationId,
+                    clientMessageId = clientMessageId,
+                    sender = MessageSender.ASSISTANT,
+                    text = "Recovered response",
+                    status = MessageStatus.SENT
+                )
+            }
+        }
+
+        val testVm = AssistantViewModel(
+            repository = repository,
+            assistantProvider = recoverableProvider,
+            telemetryProvider = { sampleTelemetry },
+            isStaleProvider = { false },
+            coroutineScope = CoroutineScope(Dispatchers.Unconfined)
+        )
+
+        testVm.updateConsent(AssistantConsentPreferences(consentGranted = true))
+        testVm.onInputTextChanged("First attempt")
+        testVm.sendMessage()
+
+        assertTrue(testVm.uiState.value.error?.contains("Backend offline") == true)
+
+        // Now recover backend and send another message
+        shouldFail = false
+        testVm.onInputTextChanged("Second attempt")
+        testVm.sendMessage()
+
+        assertNull(testVm.uiState.value.error)
+        assertEquals("Recovered response", testVm.uiState.value.currentMessages.last().text)
+    }
 }

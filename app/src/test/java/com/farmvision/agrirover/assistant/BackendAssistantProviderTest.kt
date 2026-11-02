@@ -136,4 +136,98 @@ class BackendAssistantProviderTest {
             assertNotNull(e)
         }
     }
+
+    @Test
+    fun `backend 504 gateway timeout maps cleanly to ServerError`() = runBlocking {
+        val errorJson = """
+            {
+                "error_code": "GATEWAY_TIMEOUT",
+                "message": "Gateway timed out communicating with upstream AI service.",
+                "details": {"status_code": 504}
+            }
+        """.trimIndent()
+
+        val fakeClient = FakeRoverHttpClient { _, _ ->
+            HttpResponse(statusCode = 504, body = errorJson, latencyMs = 30000L)
+        }
+
+        val provider = BackendAssistantProvider(httpClient = fakeClient)
+        try {
+            provider.sendMessage("conv-100", "msg-001", "Hello", emptyContext)
+            fail("Expected AssistantError.ServerError")
+        } catch (e: AssistantError.ServerError) {
+            assertEquals(504, e.code)
+            assertTrue(e.message?.contains("timed out") == true)
+        }
+    }
+
+    @Test
+    fun `network connection refused or socket failure maps cleanly to NetworkError`() = runBlocking {
+        val fakeClient = FakeRoverHttpClient { _, _ ->
+            throw RoverNetworkException("Connection refused to http://10.0.2.2:8000", isTimeout = false)
+        }
+
+        val provider = BackendAssistantProvider(httpClient = fakeClient)
+        try {
+            provider.sendMessage("conv-100", "msg-001", "Hello", emptyContext)
+            fail("Expected AssistantError.NetworkError")
+        } catch (e: AssistantError.NetworkError) {
+            assertTrue(e.message?.contains("Connection refused") == true)
+        }
+    }
+
+    @Test
+    fun `setBaseUrl dynamically updates request destination URL without recreation`() = runBlocking {
+        var recordedUrl: String? = null
+        val fakeClient = FakeRoverHttpClient { url, _ ->
+            recordedUrl = url
+            HttpResponse(statusCode = 200, body = """{"reply_text": "OK"}""", latencyMs = 10L)
+        }
+
+        val provider = BackendAssistantProvider(baseUrl = "http://10.0.2.2:8000", httpClient = fakeClient)
+        provider.sendMessage("c1", "m1", "Hi", emptyContext)
+        assertEquals("http://10.0.2.2:8000/api/v1/assistant/chat", recordedUrl)
+
+        // Dynamically update base URL (e.g. from Rover & Device Settings)
+        provider.setBaseUrl("http://192.168.4.1:8080")
+        provider.sendMessage("c1", "m2", "Hi again", emptyContext)
+        assertEquals("http://192.168.4.1:8080/api/v1/assistant/chat", recordedUrl)
+    }
+
+    @Test
+    fun `privacy verification - disabled telemetry, alerts, and crop profile are omitted from request payload`() = runBlocking {
+        var recordedBody: String? = null
+        val fakeClient = FakeRoverHttpClient { _, body ->
+            recordedBody = body
+            HttpResponse(statusCode = 200, body = """{"reply_text": "OK"}""", latencyMs = 10L)
+        }
+
+        val restrictedConsent = AssistantConsentPreferences(
+            consentGranted = true,
+            shareLiveTelemetry = false,
+            shareAlerts = false,
+            shareCropProfile = false,
+            shareHistoricalAnalytics = false
+        )
+
+        // Context with data present, but consent flags disabled
+        val context = com.farmvision.agrirover.domain.assistant.context.ContextBuilder.buildContext(
+            consent = restrictedConsent,
+            telemetry = com.farmvision.agrirover.data.model.RoverTelemetry(batteryPercent = 82, soilMoisture = 2200f),
+            activeAlerts = emptyList(),
+            historicalMetrics = emptyList()
+        )
+
+        val provider = BackendAssistantProvider(httpClient = fakeClient)
+        provider.sendMessage("c1", "m1", "Test Privacy", context)
+
+        assertNotNull(recordedBody)
+        // Verify disabled sections are absent or null in outgoing JSON payload
+        assertTrue("sensor_context must be null when shareLiveTelemetry is false",
+            recordedBody!!.contains("\"sensor_context\": null"))
+        assertTrue("alert_context must be empty list when shareAlerts is false",
+            recordedBody!!.contains("\"alert_context\": []"))
+        assertTrue("crop_profile must be null when shareCropProfile is false",
+            recordedBody!!.contains("\"crop_profile\": null"))
+    }
 }

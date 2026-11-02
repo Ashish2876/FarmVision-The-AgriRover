@@ -57,7 +57,8 @@ The application features a 5-destination bottom navigation shell:
 | **JDK Toolchain** | OpenJDK / Microsoft JDK | Java 17 (`17.0.18+8`) |
 | **Android SDKs** | Compile SDK / Target SDK / Min SDK | Compile `35` • Target `35` • Min `26` (Android 8.0+) |
 | **Architecture** | Unidirectional Data Flow (UDF) & Clean Architecture | Layered Presentation, Domain, and Data |
-| **Testing** | JUnit 4, AndroidX Test, Compose UI Test | JUnit `4.13.2` • 188 Passing JVM Unit Tests (20 suites) • 22 Connected Android Tests |
+| **Testing** | JUnit 4, AndroidX Test, Pytest | JUnit 4.13.2 • 340 Passing JVM Unit Tests • 15 Passing FastAPI Backend Tests |
+| **Backend AI Gateway** | FastAPI, Uvicorn, Python 3.11 | Gemini 3.5 Flash Lite • Cloud Gateway Architecture |
 | **Microcontroller Firmware** | ESP32 DevKit V1 FreeRTOS C++ | PlatformIO • Dual-Core RTOS • Rest API v1.0.0 |
 
 ---
@@ -141,15 +142,20 @@ FarmVision/
 Execute standard Gradle commands from the project root:
 
 ```bash
-# Run all local JVM unit tests (180 tests across 19 suites)
+# Run all 340 Android JVM unit tests
 ./gradlew testDebugUnitTest
 
-# Assemble the Debug APK
+# Run FastAPI backend test suite (15 tests)
+cd backend && pytest && cd ..
+
+# Assemble Release APK (R8 minification and resource shrinking enabled)
+./gradlew assembleRelease
+
+# Assemble Debug APK
 ./gradlew assembleDebug
 
-# Install and launch on an attached Android device (via ADB)
-./gradlew installDebug
-adb shell monkey -p com.farmvision.agrirover 1
+# Install and test Release APK on attached device/emulator
+adb install -r app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
 The compiled debug APK is generated at:
@@ -157,7 +163,20 @@ The compiled debug APK is generated at:
 
 ---
 
-## 6. Documentation Index
+
+## 6. Phase 15 Master Technical Documentation
+
+- [FARMVISION_COMPLETE_TECHNICAL_DOCUMENTATION.md](docs/FARMVISION_COMPLETE_TECHNICAL_DOCUMENTATION.md): Comprehensive 10-section master technical specification and system architecture reference.
+- [PHASE15_PRODUCTION_READINESS.md](docs/PHASE15_PRODUCTION_READINESS.md): Release readiness checklist, APK metrics, and deployment verification.
+- [RELEASE_BUILD_GUIDE.md](docs/RELEASE_BUILD_GUIDE.md): Gradle release build instructions, R8 optimization rules, and packaging procedures.
+- [ANDROID_SIGNING_GUIDE.md](docs/ANDROID_SIGNING_GUIDE.md): Secure signing configuration via environment variables and local properties.
+- [BACKEND_DEPLOYMENT_GUIDE.md](docs/BACKEND_DEPLOYMENT_GUIDE.md): FastAPI service deployment, Docker containerization, systemd, and reverse proxy setup.
+- [SECURITY_AND_PRIVACY_AUDIT.md](docs/SECURITY_AND_PRIVACY_AUDIT.md): Credential isolation, privacy consent toggles, and network security audit.
+- [HARDWARE_INTEGRATION_HANDOVER.md](docs/HARDWARE_INTEGRATION_HANDOVER.md): Engineering handover for ESP32 firmware team and actuator commissioning rules (ACTUATORS_ENABLED = 0).
+- [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md): Transparent documentation of deferred features, simulation boundaries, and sensor honesty invariants.
+- [phase15_final_release_report.md](reports/phase15/phase15_final_release_report.md): Final verification audit report covering 340 Android tests, 15 backend tests, and emulator runs.
+
+## 7. Historical Engineering Documentation
 
 - [docs/architecture.md](docs/architecture.md): Presentation, Domain, Data, network security, and hardware safety core.
 - [docs/design-system.md](docs/design-system.md): Color tokens, measured WCAG contrast ratios, typography scale, spacing grid, and Hardware Center component anatomy.

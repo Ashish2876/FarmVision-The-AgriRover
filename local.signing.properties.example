@@ -1,0 +1,20 @@
+# ==============================================================================
+# FarmVision Release Signing Configuration Template
+# ==============================================================================
+# INSTRUCTIONS:
+# 1. Copy this file to 'local.signing.properties' in the repository root.
+# 2. Fill in the absolute path to your production release keystore and credentials.
+# 3. DO NOT commit 'local.signing.properties' or any '.jks'/'.keystore' file to Git!
+#
+# Alternatively, configure via environment variables:
+#   FARMVISION_RELEASE_KEYSTORE_PATH
+#   FARMVISION_RELEASE_KEYSTORE_PASSWORD
+#   FARMVISION_RELEASE_KEY_ALIAS
+#   FARMVISION_RELEASE_KEY_PASSWORD
+# ==============================================================================
+
+signing.keystore.path=C:/Users/Username/.android/farmvision-release.jks
+signing.keystore.password=YourKeystorePasswordHere
+signing.key.alias=farmvision_release
+signing.key.password=YourKeyPasswordHere
+

@@ -69,3 +69,15 @@ scratch/
 # Temporary UI XML dumps & test screenshots
 docs/*.xml
 docs/*.png
+
+# Local release signing configuration
+local.signing.properties
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Temporary UI screenshots
+reports/**/screenshots/
+reports/**/*.png

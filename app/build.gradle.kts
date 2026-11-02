@@ -1,8 +1,31 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+val signingPropsFile = rootProject.file("local.signing.properties")
+val signingProps = Properties()
+if (signingPropsFile.exists()) {
+    signingPropsFile.inputStream().use { signingProps.load(it) }
+}
+
+val keystorePath = System.getenv("FARMVISION_RELEASE_KEYSTORE_PATH")
+    ?: signingProps.getProperty("signing.keystore.path")
+val keystorePassword = System.getenv("FARMVISION_RELEASE_KEYSTORE_PASSWORD")
+    ?: signingProps.getProperty("signing.keystore.password")
+val keyAlias = System.getenv("FARMVISION_RELEASE_KEY_ALIAS")
+    ?: signingProps.getProperty("signing.key.alias")
+val keyPassword = System.getenv("FARMVISION_RELEASE_KEY_PASSWORD")
+    ?: signingProps.getProperty("signing.key.password")
+
+val hasReleaseSigning = !keystorePath.isNullOrBlank() &&
+    !keystorePassword.isNullOrBlank() &&
+    !keyAlias.isNullOrBlank() &&
+    !keyPassword.isNullOrBlank() &&
+    file(keystorePath).exists()
 
 android {
     namespace = "com.farmvision.agrirover"
@@ -13,7 +36,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0.0-phase1"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,13 +44,28 @@ android {
         }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning && keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             isDebuggable = true

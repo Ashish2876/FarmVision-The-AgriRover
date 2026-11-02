@@ -98,7 +98,7 @@ class FarmViewModel(
     private val _selectedMetric = MutableStateFlow(HistoricalMetric.SoilMoistureProbe1Raw)
     val selectedMetric: StateFlow<HistoricalMetric> = _selectedMetric.asStateFlow()
 
-    private val _isDemoModeActive = MutableStateFlow(true)
+    private val _isDemoModeActive = MutableStateFlow(preferencesManager?.settingsFlow?.value?.isSimulatedEngineActive ?: true)
     val isDemoModeActive: StateFlow<Boolean> = _isDemoModeActive.asStateFlow()
 
     private val _isTableViewSelected = MutableStateFlow(false)
@@ -119,6 +119,14 @@ class FarmViewModel(
     private var analyticsJob: Job? = null
 
     init {
+        viewModelScope.launch(defaultDispatcher) {
+            settings.collect { currentSettings ->
+                if (_isDemoModeActive.value != currentSettings.isSimulatedEngineActive) {
+                    _isDemoModeActive.value = currentSettings.isSimulatedEngineActive
+                    recomputeAnalytics()
+                }
+            }
+        }
         viewModelScope.launch(defaultDispatcher) {
             telemetry.collect { tel ->
                 val connStatus = tel.connectionStatus.defaultLabel
@@ -359,13 +367,8 @@ class FarmViewModel(
     fun toggleAnalyticsDemoMode(enable: Boolean) {
         if (_isDemoModeActive.value == enable) return
         _isDemoModeActive.value = enable
+        preferencesManager?.updateSimulatedEngine(enable)
         recomputeAnalytics()
-        viewModelScope.launch(defaultDispatcher) {
-            while (true) {
-                delay(1000L)
-                _sessionDurationSeconds.value += 1L
-            }
-        }
     }
 
     fun setCustomDateRange(startMillis: Long, endMillis: Long) {
@@ -666,6 +669,10 @@ class FarmViewModel(
     fun setSimulatedEngineActive(active: Boolean) {
         preferencesManager?.updateSimulatedEngine(active) ?: run {
             _fallbackSettings.value = _fallbackSettings.value.copy(isSimulatedEngineActive = active)
+            if (_isDemoModeActive.value != active) {
+                _isDemoModeActive.value = active
+                recomputeAnalytics()
+            }
         }
     }
 

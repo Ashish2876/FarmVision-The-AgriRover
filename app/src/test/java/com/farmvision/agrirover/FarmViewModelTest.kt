@@ -222,6 +222,12 @@ class FarmViewModelTest {
 
         viewModel.setSimulatedEngineActive(false)
         assertFalse(viewModel.settings.value.isSimulatedEngineActive)
+        assertFalse(viewModel.isDemoModeActive.value)
+
+        // Toggling back to simulation
+        viewModel.setSimulatedEngineActive(true)
+        assertTrue(viewModel.settings.value.isSimulatedEngineActive)
+        assertTrue(viewModel.isDemoModeActive.value)
     }
 
     @Test
