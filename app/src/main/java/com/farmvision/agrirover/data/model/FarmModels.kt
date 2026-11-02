@@ -70,13 +70,49 @@ data class AnalyticsKpis(
 )
 
 /**
+ * Application visual theme mode.
+ */
+enum class ThemeMode(val label: String) {
+    System("Follow System"),
+    Light("Light Theme"),
+    Dark("Dark Theme");
+
+    companion object {
+        fun fromString(value: String?): ThemeMode = when (value?.trim()?.lowercase()) {
+            "light" -> Light
+            "dark" -> Dark
+            else -> System
+        }
+    }
+}
+
+/**
+ * Application language localization.
+ */
+enum class AppLanguage(val code: String, val label: String) {
+    English("en", "English");
+
+    companion object {
+        fun fromCode(code: String?): AppLanguage = when (code?.trim()?.lowercase()) {
+            else -> English
+        }
+    }
+}
+
+/**
  * Persisted user settings and preferences.
  */
 data class FarmSettings(
     val temperatureUnit: TemperatureUnit = TemperatureUnit.Celsius,
     val speedUnit: SpeedUnit = SpeedUnit.Metric,
     val transportProtocol: String = "Wi-Fi SoftAP",
-    val isSimulatedEngineActive: Boolean = true
+    val isSimulatedEngineActive: Boolean = true,
+    val themeMode: ThemeMode = ThemeMode.System,
+    val language: AppLanguage = AppLanguage.English,
+    val roverName: String = "AgriRover Alpha",
+    val backendUrl: String = "http://10.0.2.2:8000",
+    val isNotificationSoundEnabled: Boolean = true,
+    val isNotificationVibrationEnabled: Boolean = true
 )
 
 /**

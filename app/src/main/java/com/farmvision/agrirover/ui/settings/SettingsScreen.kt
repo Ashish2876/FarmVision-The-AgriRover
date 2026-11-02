@@ -1,6 +1,5 @@
 package com.farmvision.agrirover.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,53 +8,62 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Agriculture
+import androidx.compose.material.icons.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Psychology
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionCard
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionDemoBanner
-import com.farmvision.agrirover.core.designsystem.component.FarmVisionDivider
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionSectionHeader
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusBadge
 import com.farmvision.agrirover.core.designsystem.component.FarmVisionStatusType
 import com.farmvision.agrirover.core.designsystem.theme.FarmVisionSpacing
-import com.farmvision.agrirover.data.model.SpeedUnit
-import com.farmvision.agrirover.data.model.TemperatureUnit
-import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
+import com.farmvision.agrirover.ui.settings.components.SettingsCategoryCard
 
 /**
- * Settings & System Preferences Screen.
- * Configures connection protocols, units, simulation toggles, and displays system build metadata.
- * Unit selections are persistently stored in SharedPreferences and dynamically synchronize
- * telemetry rendering across Home, Rover, and Analytics.
+ * Settings & Configuration Management Center — Hub Screen.
+ * Presents organized navigation into 8 functional modules:
+ * 1. General Settings
+ * 2. Rover & Device Settings
+ * 3. AI Assistant Settings
+ * 4. Privacy & Security
+ * 5. Notification Settings
+ * 6. Data Management
+ * 7. Help & Support
+ * 8. About FarmVision
  */
 @Composable
 fun SettingsScreen(
-    viewModel: FarmViewModel,
+    viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
+    onNavigateToGeneral: () -> Unit,
+    onNavigateToRoverDevice: () -> Unit,
+    onNavigateToAiAssistant: () -> Unit,
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToDataManagement: () -> Unit,
+    onNavigateToHelpSupport: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onNavigateToHardwareCenter: (() -> Unit)? = null,
     onNavigateToAlertCenter: (() -> Unit)? = null,
-    onNavigateToDeviceManagement: (() -> Unit)? = null,
-    onNavigateToAiPrivacy: (() -> Unit)? = null
+    onNavigateToDeviceManagement: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
-    val settings by viewModel.settings.collectAsState()
 
     Surface(
         modifier = modifier
@@ -77,13 +85,13 @@ fun SettingsScreen(
             ) {
                 Column {
                     Text(
-                        text = "Settings",
+                        text = "Settings & Configuration",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Connection • Preferences • System Info",
+                        text = "Control Center • Hardware • AI • Privacy",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -95,363 +103,143 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
 
             FarmVisionDemoBanner(
-                message = "PREFERENCES: Settings adjustments operate locally with SharedPreferences persistence. Physical rover connection parameters will activate in Stage D."
+                message = "SETTINGS CENTER: Centralized control for themes, device endpoints, Google Gemini 3.5 Flash Lite, privacy consent, and data storage."
             )
 
-            // Device and Communication Entry Card
+            // Primary Configuration Categories
             FarmVisionSectionHeader(
-                title = "Device and Communication",
-                description = "Multi-transport architecture, Wi-Fi SoftAP and FastAPI Cloud"
+                title = "Application & Device Controls",
+                description = "Core appearance, communication endpoints, and unit options"
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
-            FarmVisionCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToDeviceManagement?.invoke() }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Device and Transport Management",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Configure direct ESP32 SoftAP, cloud gateway, diagnostics and Keystore auth",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Open Device Management",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-            // Phase 12: AI Assistant Privacy Section
-            FarmVisionSectionHeader(
-                title = "AI Agriculture Assistant",
-                description = "Privacy controls, telemetry consent, and conversation management"
+            // 1. General Settings
+            SettingsCategoryCard(
+                title = "General Settings",
+                description = "Visual theme (Light/Dark/System), language, measurement units, and preferences reset",
+                icon = Icons.Rounded.Tune,
+                onClick = onNavigateToGeneral
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
-            FarmVisionCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToAiPrivacy?.invoke() }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "AI Privacy & Data Controls",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Configure granular sharing for live sensors, alerts, analytics, and delete chat history",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Configure AI Privacy",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-            // Hardware Center Entry Card
-            FarmVisionSectionHeader(
-                title = "Hardware Center",
-                description = "23-Component catalog & microcontroller status"
+            // 2. Rover & Device Settings
+            SettingsCategoryCard(
+                title = "Rover & Device Settings",
+                description = "Rover identity, communication transport, ESP32 architecture, and backend diagnostics",
+                icon = Icons.Rounded.Agriculture,
+                onClick = onNavigateToRoverDevice
             )
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-            FarmVisionCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToHardwareCenter?.invoke() }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hardware Center & Device Inventory",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Inspect 23 catalog components, dual ESP32 controller status, and pinouts",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Open Hardware Center",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-            // Alert Centre Entry Card
-            FarmVisionSectionHeader(
-                title = "Alerts and Notifications",
-                description = "Intelligent monitoring, threshold tuning and history"
-            )
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-            FarmVisionCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onNavigateToAlertCenter?.invoke() }
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Alert Centre and Threshold Settings",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Configure sensor limits, debounce counts, audit logs, and notification channels",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Open Alert Centre",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(FarmVisionSpacing.iconSizeLarge)
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
 
-            // 1. Connection Architecture
+            // AI & Security Section
             FarmVisionSectionHeader(
-                title = "Hardware Communication",
-                description = "Rover transport protocol bridge"
+                title = "Intelligence & Data Protection",
+                description = "Google Gemini AI provider, privacy consent, and notifications"
             )
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
 
-            FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Active Transport Protocol",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Configures telemetry streaming bridge",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // 3. AI Assistant Settings
+            SettingsCategoryCard(
+                title = "AI Assistant Settings",
+                description = "Google Gemini integration, quota tracking, and agronomic veracity policies",
+                icon = Icons.Rounded.Psychology,
+                badgeText = "gemini-3.5-flash-lite",
+                onClick = onNavigateToAiAssistant
+            )
 
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 4. Privacy & Security
+            SettingsCategoryCard(
+                title = "Privacy & Security",
+                description = "Granular context sharing permissions (sensors, alerts, analytics, crops)",
+                icon = Icons.Rounded.Security,
+                onClick = onNavigateToPrivacy
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 5. Notification Settings
+            SettingsCategoryCard(
+                title = "Notification Settings",
+                description = "Alert sound, vibration feedback, Android channels, and threshold boundaries",
+                icon = Icons.Rounded.Notifications,
+                onClick = onNavigateToNotifications
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+
+            // Storage & Information Section
+            FarmVisionSectionHeader(
+                title = "Data, Guides & Support",
+                description = "Storage management, user documentation, and application specifications"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 6. Data Management
+            SettingsCategoryCard(
+                title = "Data Management",
+                description = "Storage audit, AI conversation clearing, telemetry log pruning, and cache cleaning",
+                icon = Icons.Rounded.Storage,
+                onClick = onNavigateToDataManagement
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 7. Help & Support
+            SettingsCategoryCard(
+                title = "Help & Support",
+                description = "User guides, network/AI troubleshooting, agronomic FAQ, and GitHub issue tracker",
+                icon = Icons.Rounded.HelpOutline,
+                onClick = onNavigateToHelpSupport
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            // 8. About FarmVision
+            SettingsCategoryCard(
+                title = "About FarmVision",
+                description = "Version 1.0.0, engineering stack, open source notices, and system specs",
+                icon = Icons.Rounded.Info,
+                onClick = onNavigateToAbout
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.large))
+
+            // Quick Diagnostic Links
+            FarmVisionSectionHeader(
+                title = "Hardware & Alert Portals",
+                description = "Direct access to component inventory and active alert center"
+            )
+
+            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
+
+            if (onNavigateToHardwareCenter != null) {
+                SettingsCategoryCard(
+                    title = "Hardware Center & Device Inventory",
+                    description = "Inspect 23 catalog components, dual ESP32 microcontroller status, and pinouts",
+                    icon = Icons.Rounded.Agriculture,
+                    onClick = onNavigateToHardwareCenter
+                )
                 Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-                listOf("Wi-Fi SoftAP", "Bluetooth Low Energy (BLE)", "MQTT Broker").forEach { protocol ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = settings.transportProtocol == protocol,
-                            onClick = { viewModel.setTransportProtocol(protocol) }
-                        )
-                        Text(
-                            text = protocol,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-                FarmVisionDivider()
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Simulation Mock Engine",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "Generates synthetic telemetry without physical hardware",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = settings.isSimulatedEngineActive,
-                        onCheckedChange = { viewModel.setSimulatedEngineActive(it) }
-                    )
-                }
             }
 
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
-
-            // 2. Units & Preferences (Persistent)
-            FarmVisionSectionHeader(
-                title = "Measurement Units",
-                description = "Sensor reading formats and scales (Persisted)"
-            )
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-            FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Temperature Scale",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+            if (onNavigateToAlertCenter != null) {
+                SettingsCategoryCard(
+                    title = "Alert Centre & Threshold Settings",
+                    description = "Configure sensor limits, debounce counts, audit logs, and notification channels",
+                    icon = Icons.Rounded.Notifications,
+                    onClick = onNavigateToAlertCenter
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TemperatureUnit.entries.forEach { unit ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(
-                                selected = settings.temperatureUnit == unit,
-                                onClick = { viewModel.setTemperatureUnit(unit) }
-                            )
-                            Text(
-                                text = unit.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-                FarmVisionDivider()
-                Spacer(modifier = Modifier.height(FarmVisionSpacing.medium))
-
-                Text(
-                    text = "Speed & Distance",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(FarmVisionSpacing.small),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SpeedUnit.entries.forEach { unit ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(
-                                selected = settings.speedUnit == unit,
-                                onClick = { viewModel.setSpeedUnit(unit) }
-                            )
-                            Text(
-                                text = unit.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.extraLarge))
-
-            // 3. System & Application Metadata
-            FarmVisionSectionHeader(
-                title = "System Information",
-                description = "Build specifications and platform contracts"
-            )
-
-            Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
-
-            FarmVisionCard(modifier = Modifier.fillMaxWidth()) {
-                InfoRow(label = "Application", value = "FarmVision AgriRover")
-                InfoRow(label = "Package ID", value = "com.farmvision.agrirover")
-                InfoRow(label = "Version", value = "1.0.0")
-                InfoRow(label = "Target SDK", value = "Android 15 (API 35)")
-                InfoRow(label = "UI Architecture", value = "Jetpack Compose • Material 3")
-                InfoRow(label = "Shared State", value = "FarmViewModel • StateFlow")
-                InfoRow(label = "Safety Watchdog", value = "500ms Heartbeat Cutoff")
-                InfoRow(label = "Hardware Target", value = "ESP32 Robotics Platform")
+                Spacer(modifier = Modifier.height(FarmVisionSpacing.small))
             }
 
             Spacer(modifier = Modifier.height(FarmVisionSpacing.huge))
         }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }

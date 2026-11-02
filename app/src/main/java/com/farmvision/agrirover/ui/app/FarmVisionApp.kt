@@ -37,6 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.farmvision.agrirover.data.alert.repository.JsonFileAlertRepository
 import com.farmvision.agrirover.data.alert.repository.PreferencesAlertSettingsRepository
+import com.farmvision.agrirover.data.assistant.provider.BackendAssistantProvider
+import com.farmvision.agrirover.data.assistant.repository.JsonFileAssistantRepository
+import com.farmvision.agrirover.data.device.repository.ProductionDeviceCommunicationRepository
 import com.farmvision.agrirover.data.local.SettingsPreferencesManager
 import com.farmvision.agrirover.data.repository.JsonFileTelemetryHistoryRepository
 import com.farmvision.agrirover.data.repository.MockFarmRepository
@@ -47,18 +50,30 @@ import com.farmvision.agrirover.ui.alert.screens.AlertDetailsScreen
 import com.farmvision.agrirover.ui.alert.screens.AlertHistoryScreen
 import com.farmvision.agrirover.ui.alert.screens.AlertSettingsScreen
 import com.farmvision.agrirover.ui.analytics.AnalyticsScreen
-import com.farmvision.agrirover.ui.farm.MyFarmScreen
-import com.farmvision.agrirover.ui.hardware.screens.HardwareCenterScreen
-import com.farmvision.agrirover.ui.home.HomeScreen
-import com.farmvision.agrirover.ui.rover.RoverScreen
+import com.farmvision.agrirover.ui.assistant.AssistantViewModel
+import com.farmvision.agrirover.ui.assistant.screens.AssistantChatScreen
 import com.farmvision.agrirover.ui.device.DeviceManagementViewModel
 import com.farmvision.agrirover.ui.device.screens.ConnectionDiagnosticsScreen
 import com.farmvision.agrirover.ui.device.screens.ConnectionSetupScreen
 import com.farmvision.agrirover.ui.device.screens.DeviceConfigurationScreen
 import com.farmvision.agrirover.ui.device.screens.DeviceDetailsScreen
 import com.farmvision.agrirover.ui.device.screens.DeviceManagementScreen
+import com.farmvision.agrirover.ui.farm.MyFarmScreen
+import com.farmvision.agrirover.ui.hardware.screens.HardwareCenterScreen
+import com.farmvision.agrirover.ui.home.HomeScreen
+import com.farmvision.agrirover.ui.rover.RoverScreen
 import com.farmvision.agrirover.ui.settings.SettingsScreen
+import com.farmvision.agrirover.ui.settings.SettingsViewModel
+import com.farmvision.agrirover.ui.settings.screens.AboutFarmVisionScreen
+import com.farmvision.agrirover.ui.settings.screens.AiAssistantSettingsScreen
+import com.farmvision.agrirover.ui.settings.screens.DataManagementScreen
+import com.farmvision.agrirover.ui.settings.screens.GeneralSettingsScreen
+import com.farmvision.agrirover.ui.settings.screens.HelpSupportScreen
+import com.farmvision.agrirover.ui.settings.screens.NotificationSettingsScreen
+import com.farmvision.agrirover.ui.settings.screens.PrivacySecuritySettingsScreen
+import com.farmvision.agrirover.ui.settings.screens.RoverDeviceSettingsScreen
 import com.farmvision.agrirover.ui.viewmodel.FarmViewModel
+import java.io.File
 
 /**
  * Top-level application destinations for the FarmVision AgriRover bottom navigation shell.
@@ -108,7 +123,7 @@ enum class FarmVisionDestination(
  * Home, Rover, My Farm, Analytics, and Settings.
  * Single source of truth is maintained by [FarmViewModel].
  * Implements strict back-navigation policy and state retention across tab switches.
- * Integrates Phase 10 Intelligent Alert & Notification Centre overlays and deep-links.
+ * Integrates Phase 13 Settings & Configuration Center with 8 specialized sub-modules.
  */
 @Composable
 fun FarmVisionApp(
@@ -117,12 +132,17 @@ fun FarmVisionApp(
     intent: Intent? = null
 ) {
     val context = LocalContext.current
+    val historyRepo = remember { JsonFileTelemetryHistoryRepository(context) }
+    val assistantRepo = remember {
+        val storageFile = File(context.filesDir, "assistant_conversations.json")
+        JsonFileAssistantRepository(storageFile)
+    }
+    val alertRepo = remember { JsonFileAlertRepository(context) }
+    val alertSettingsRepo = remember { PreferencesAlertSettingsRepository(context) }
+    val prefs = remember { SettingsPreferencesManager(context) }
+
     val farmViewModel = viewModel ?: remember {
-        val historyRepo = JsonFileTelemetryHistoryRepository(context)
         val repo = MockFarmRepository(telemetryHistory = historyRepo)
-        val prefs = SettingsPreferencesManager(context)
-        val alertRepo = JsonFileAlertRepository(context)
-        val alertSettingsRepo = PreferencesAlertSettingsRepository(context)
         val notifManager = AlertNotificationManager(context)
         FarmViewModel(
             repository = repo,
@@ -134,11 +154,18 @@ fun FarmVisionApp(
     }
 
     val alertViewModel = remember(farmViewModel) {
-        val alertRepo = farmViewModel.alertRepository ?: JsonFileAlertRepository(context)
-        val alertSettingsRepo = farmViewModel.alertSettingsRepository ?: PreferencesAlertSettingsRepository(context)
         AlertViewModel(
             alertRepository = alertRepo,
             settingsRepository = alertSettingsRepo
+        )
+    }
+
+    val settingsViewModel = remember {
+        SettingsViewModel(
+            preferencesManager = prefs,
+            assistantRepository = assistantRepo,
+            alertSettingsRepository = alertSettingsRepo,
+            telemetryHistoryRepository = historyRepo
         )
     }
 
@@ -148,6 +175,7 @@ fun FarmVisionApp(
     var selectedAlertDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var isAlertSettingsOpen by rememberSaveable { mutableStateOf(false) }
     var isAlertHistoryOpen by rememberSaveable { mutableStateOf(false) }
+
     var isDeviceManagementOpen by rememberSaveable { mutableStateOf(false) }
     var isDeviceDetailsOpen by rememberSaveable { mutableStateOf(false) }
     var isConnectionSetupOpen by rememberSaveable { mutableStateOf(false) }
@@ -155,18 +183,26 @@ fun FarmVisionApp(
     var isConnectionDiagnosticsOpen by rememberSaveable { mutableStateOf(false) }
     var isAssistantOpen by rememberSaveable { mutableStateOf(false) }
 
+    // Phase 13: Settings Sub-screens
+    var isGeneralSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var isRoverSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var isAiSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var isPrivacySettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var isNotificationSettingsOpen by rememberSaveable { mutableStateOf(false) }
+    var isDataManagementOpen by rememberSaveable { mutableStateOf(false) }
+    var isHelpSupportOpen by rememberSaveable { mutableStateOf(false) }
+    var isAboutOpen by rememberSaveable { mutableStateOf(false) }
+
     val deviceViewModel = remember(farmViewModel) {
-        val repo = (farmViewModel.deviceRegistry as? com.farmvision.agrirover.data.device.repository.ProductionDeviceCommunicationRepository)
-            ?: com.farmvision.agrirover.data.device.repository.ProductionDeviceCommunicationRepository()
+        val repo = (farmViewModel.deviceRegistry as? ProductionDeviceCommunicationRepository)
+            ?: ProductionDeviceCommunicationRepository()
         DeviceManagementViewModel(communicationRepository = repo)
     }
 
     val assistantViewModel = remember(farmViewModel) {
-        val storageFile = java.io.File(context.filesDir, "assistant_conversations.json")
-        val repo = com.farmvision.agrirover.data.assistant.repository.JsonFileAssistantRepository(storageFile)
-        val provider = com.farmvision.agrirover.data.assistant.provider.BackendAssistantProvider()
-        com.farmvision.agrirover.ui.assistant.AssistantViewModel(
-            repository = repo,
+        val provider = BackendAssistantProvider()
+        AssistantViewModel(
+            repository = assistantRepo,
             assistantProvider = provider,
             telemetryProvider = { farmViewModel.telemetry.value },
             isStaleProvider = { false }
@@ -189,28 +225,33 @@ fun FarmVisionApp(
     }
 
     // --- Back-Navigation Policy ---
-    // Priority 1: If a modal (notification sheet) is open, Back closes it first.
     BackHandler(enabled = isNotificationSheetOpen) {
         farmViewModel.setNotificationSheetOpen(false)
     }
 
-    // Priority 1a: Assistant Overlay
     BackHandler(enabled = isAssistantOpen && !isNotificationSheetOpen) {
         isAssistantOpen = false
     }
 
-    // Priority 2: Alert Details overlay
+    // Settings Sub-screens BackHandlers
+    BackHandler(enabled = isGeneralSettingsOpen) { isGeneralSettingsOpen = false }
+    BackHandler(enabled = isRoverSettingsOpen) { isRoverSettingsOpen = false }
+    BackHandler(enabled = isAiSettingsOpen) { isAiSettingsOpen = false }
+    BackHandler(enabled = isPrivacySettingsOpen) { isPrivacySettingsOpen = false }
+    BackHandler(enabled = isNotificationSettingsOpen) { isNotificationSettingsOpen = false }
+    BackHandler(enabled = isDataManagementOpen) { isDataManagementOpen = false }
+    BackHandler(enabled = isHelpSupportOpen) { isHelpSupportOpen = false }
+    BackHandler(enabled = isAboutOpen) { isAboutOpen = false }
+
     BackHandler(enabled = selectedAlertDetailId != null && !isNotificationSheetOpen) {
         selectedAlertDetailId = null
         alertViewModel.selectAlert(null)
     }
 
-    // Priority 3: Alert Settings overlay
     BackHandler(enabled = isAlertSettingsOpen && selectedAlertDetailId == null && !isNotificationSheetOpen) {
         isAlertSettingsOpen = false
     }
 
-    // Priority 3a: Device Sub-screens
     BackHandler(enabled = isDeviceDetailsOpen) { isDeviceDetailsOpen = false }
     BackHandler(enabled = isConnectionSetupOpen) { isConnectionSetupOpen = false }
     BackHandler(enabled = isDeviceConfigOpen) { isDeviceConfigOpen = false }
@@ -219,22 +260,21 @@ fun FarmVisionApp(
         isDeviceManagementOpen = false
     }
 
-    // Priority 4: Alert History overlay
     BackHandler(enabled = isAlertHistoryOpen && selectedAlertDetailId == null && !isNotificationSheetOpen) {
         isAlertHistoryOpen = false
     }
 
-    // Priority 5: Alert Center overlay
     BackHandler(enabled = isAlertCenterOpen && !isAlertSettingsOpen && !isAlertHistoryOpen && selectedAlertDetailId == null && !isNotificationSheetOpen) {
         isAlertCenterOpen = false
     }
 
-    // Priority 6: If Hardware Center is open, Back closes it and returns to previous screen.
     BackHandler(enabled = isHardwareCenterOpen && !isAlertCenterOpen && !isNotificationSheetOpen) {
         isHardwareCenterOpen = false
     }
 
-    // Priority 7: On a non-Home top-level tab (with no modal/center open), Back returns to Home.
+    val isAnySettingsSubscreenOpen = isGeneralSettingsOpen || isRoverSettingsOpen || isAiSettingsOpen ||
+        isPrivacySettingsOpen || isNotificationSettingsOpen || isDataManagementOpen || isHelpSupportOpen || isAboutOpen
+
     BackHandler(
         enabled = currentDestination != FarmVisionDestination.Home &&
             !isNotificationSheetOpen &&
@@ -242,19 +282,19 @@ fun FarmVisionApp(
             !isAlertCenterOpen &&
             selectedAlertDetailId == null &&
             !isAlertSettingsOpen &&
-            !isAlertHistoryOpen
+            !isAlertHistoryOpen &&
+            !isDeviceManagementOpen &&
+            !isAnySettingsSubscreenOpen
     ) {
         currentDestination = FarmVisionDestination.Home
     }
-
-    // Priority 8: On Home with nothing open, default Android Back proceeds (leaves app).
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val isRoverControllerActive = currentDestination == FarmVisionDestination.Rover && !isHardwareCenterOpen
     val isAlertScreenActive = isAlertCenterOpen || isAlertSettingsOpen || isAlertHistoryOpen || selectedAlertDetailId != null
     val isDeviceScreenActive = isDeviceManagementOpen || isDeviceDetailsOpen || isConnectionSetupOpen || isDeviceConfigOpen || isConnectionDiagnosticsOpen
-    val shouldHideBottomBar = isHardwareCenterOpen || isAlertScreenActive || isDeviceScreenActive || (isRoverControllerActive && isLandscape)
+    val shouldHideBottomBar = isHardwareCenterOpen || isAlertScreenActive || isDeviceScreenActive || isAnySettingsSubscreenOpen || (isRoverControllerActive && isLandscape)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -304,11 +344,62 @@ fun FarmVisionApp(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if ((isRoverControllerActive && isLandscape) || isAlertScreenActive) Modifier
+                    if ((isRoverControllerActive && isLandscape) || isAlertScreenActive || isAnySettingsSubscreenOpen) Modifier
                     else Modifier.padding(innerPadding)
                 )
         ) {
             when {
+                // Settings Sub-screens
+                isGeneralSettingsOpen -> {
+                    GeneralSettingsScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isGeneralSettingsOpen = false }
+                    )
+                }
+                isRoverSettingsOpen -> {
+                    RoverDeviceSettingsScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isRoverSettingsOpen = false }
+                    )
+                }
+                isAiSettingsOpen -> {
+                    AiAssistantSettingsScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isAiSettingsOpen = false },
+                        onNavigateToPrivacy = { isPrivacySettingsOpen = true }
+                    )
+                }
+                isPrivacySettingsOpen -> {
+                    PrivacySecuritySettingsScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isPrivacySettingsOpen = false }
+                    )
+                }
+                isNotificationSettingsOpen -> {
+                    NotificationSettingsScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isNotificationSettingsOpen = false },
+                        onNavigateToAlertSettings = { isAlertSettingsOpen = true }
+                    )
+                }
+                isDataManagementOpen -> {
+                    DataManagementScreen(
+                        viewModel = settingsViewModel,
+                        onNavigateBack = { isDataManagementOpen = false }
+                    )
+                }
+                isHelpSupportOpen -> {
+                    HelpSupportScreen(
+                        onNavigateBack = { isHelpSupportOpen = false }
+                    )
+                }
+                isAboutOpen -> {
+                    AboutFarmVisionScreen(
+                        onNavigateBack = { isAboutOpen = false }
+                    )
+                }
+
+                // Existing Alert & Device Overlays
                 selectedAlertDetailId != null -> {
                     AlertDetailsScreen(
                         viewModel = alertViewModel,
@@ -390,7 +481,7 @@ fun FarmVisionApp(
                     )
                 }
                 isAssistantOpen -> {
-                    com.farmvision.agrirover.ui.assistant.screens.AssistantChatScreen(
+                    AssistantChatScreen(
                         viewModel = assistantViewModel,
                         onNavigateBack = { isAssistantOpen = false }
                     )
@@ -432,14 +523,18 @@ fun FarmVisionApp(
                                 }
                             )
                             FarmVisionDestination.Settings -> SettingsScreen(
-                                viewModel = farmViewModel,
+                                viewModel = settingsViewModel,
+                                onNavigateToGeneral = { isGeneralSettingsOpen = true },
+                                onNavigateToRoverDevice = { isRoverSettingsOpen = true },
+                                onNavigateToAiAssistant = { isAiSettingsOpen = true },
+                                onNavigateToPrivacy = { isPrivacySettingsOpen = true },
+                                onNavigateToNotifications = { isNotificationSettingsOpen = true },
+                                onNavigateToDataManagement = { isDataManagementOpen = true },
+                                onNavigateToHelpSupport = { isHelpSupportOpen = true },
+                                onNavigateToAbout = { isAboutOpen = true },
                                 onNavigateToHardwareCenter = { isHardwareCenterOpen = true },
                                 onNavigateToAlertCenter = { isAlertCenterOpen = true },
-                                onNavigateToDeviceManagement = { isDeviceManagementOpen = true },
-                                onNavigateToAiPrivacy = {
-                                    assistantViewModel.openConsentDialog()
-                                    isAssistantOpen = true
-                                }
+                                onNavigateToDeviceManagement = { isDeviceManagementOpen = true }
                             )
                         }
                     }
